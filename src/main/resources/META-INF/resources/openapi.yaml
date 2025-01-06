@@ -1,0 +1,104 @@
+openapi: "3.0.3"
+info:
+  title: "JSCompressor API"
+  description: "JSCompressor API"
+  version: "0.1"
+paths:
+  /compile:
+    post:
+      summary: "POST compile"
+      operationId: "compile"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompileRequest"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompileResponse"
+
+  /compile/{hash}:
+    get:
+      summary: "GET compile/{hash}"
+      operationId: "read"
+      parameters:
+        - name: "hash"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Javascript file (binary)"
+          content:
+            application/octet-stream:
+              schema:
+                type: "string"
+                format: "binary"
+
+components:
+  schemas:
+    Formatting:
+      type: "object"
+      properties:
+        prettyPrint:
+          type: "boolean"
+        printInputDelimiter:
+          type: "boolean"
+
+    ExternalScripts:
+      type: "object"
+      properties:
+        urls:
+          type: "array"
+          items:
+            type: "string"
+
+    Statistics:
+      type: "object"
+      properties:
+        originalSize:
+          type: "integer"
+          format: "int64"
+        compiledSize:
+          type: "integer"
+          format: "int64"
+
+    CompileResponse:
+      type: "object"
+      properties:
+        compiledCode:
+          type: "string"
+        downloadId:
+          type: "string"
+        warnings:
+          type: "array"
+          items:
+            type: "string"
+        errors:
+          type: "array"
+          items:
+            type: "string"
+        statistics:
+          $ref: "#/components/schemas/Statistics"
+
+    CompileRequest:
+      type: "object"
+      properties:
+        compilationLevel:
+          type: "string"
+        warningLevel:
+          type: "string"
+        outputFileName:
+          type: "string"
+        payload:
+          type: "string"
+        formatting:
+          $ref: "#/components/schemas/Formatting"
+        externalScripts:
+          $ref: "#/components/schemas/ExternalScripts"

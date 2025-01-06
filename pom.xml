@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.treblereel.javascript</groupId>
+    <artifactId>jscompressor</artifactId>
+    <version>0.1</version>
+
+    <developers>
+        <developer>
+            <name>Dmitrii Tikhomirov</name>
+            <email>treblereel@crysknife.io</email>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <description>A web application serving as both a user-friendly web interface and a REST API for Google's Closure Compiler.</description>
+
+    <inceptionYear>2025</inceptionYear>
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/treblereel/jscompressor/issues</url>
+    </issueManagement>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
+
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+
+        <maven.license.plugin>4.6</maven.license.plugin>
+        <maven.fmt.plugin>2.25</maven.fmt.plugin>
+        <maven.checkstyle.plugin>3.2.0</maven.checkstyle.plugin>
+        <version.checkstyle>8.29</version.checkstyle>
+
+        <checkstyle.failOnViolation>true</checkstyle.failOnViolation>
+        <checkstyle.logViolationsToConsole>true</checkstyle.logViolationsToConsole>
+
+        <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+        <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+        <quarkus.platform.version>3.17.5</quarkus.platform.version>
+
+        <closure-compiler.version>v20230802</closure-compiler.version>
+        <commons-io.version>2.18.0</commons-io.version>
+
+        <surefire-plugin.version>3.5.0</surefire-plugin.version>
+        <skipITs>true</skipITs>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>${quarkus.platform.group-id}</groupId>
+                <artifactId>${quarkus.platform.artifact-id}</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-arc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client-jsonb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.javascript</groupId>
+            <artifactId>closure-compiler</artifactId>
+            <version>v20230802</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.javascript</groupId>
+            <artifactId>closure-compiler-externs</artifactId>
+            <version>${closure-compiler.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-jsonb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>${commons-io.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-hibernate-validator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>${quarkus.platform.group-id}</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>generate-code</goal>
+                            <goal>generate-code-tests</goal>
+                            <goal>native-image-agent</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.plugin.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>${maven.license.plugin}</version>
+                <configuration>
+                    <header>LICENSE.header</header>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <skipExistingHeaders>true</skipExistingHeaders>
+                    <mapping>
+                        <java>SLASHSTAR_STYLE</java>
+                    </mapping>
+                    <excludes>
+                        <exclude>.github/</exclude>
+                        <exclude>.dockerignore</exclude>
+                        <exclude>**/docker/</exclude>
+                        <exclude>**/README.md</exclude>
+                        <exclude>**/LICENSE</exclude>
+                        <exclude>**/LICENSE.header</exclude>
+                        <exclude>**/src/test/resources/**</exclude>
+                        <exclude>**/src/main/resources/**</exclude>
+                        <exclude>**/pom.xml</exclude>
+                        <exclude>**/cache/</exclude>
+                        <exclude>checkstyle.xml</exclude>
+                    </excludes>
+                    <properties>
+                        <year>${project.inceptionYear}</year>
+                        <name>${project.organization.name}</name>
+                    </properties>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven.checkstyle.plugin}</version>
+                <executions>
+                    <execution>
+                        <id>validate</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <checkstyleRules>
+                                <module name="Checker">
+                                    <!-- Checks for whitespace. -->
+                                    <module name="FileTabCharacter">
+                                        <property name="severity" value="error" />
+                                        <property name="eachLine" value="true" />
+                                    </module>
+                                    <module name="TreeWalker">
+                                        <!-- Import settings: getting rid of redundant import, forbid star notation, defined order of imports. -->
+                                        <module name="RedundantImport" />
+                                        <module name="AvoidStarImport">
+                                            <property name="allowClassImports" value="false" />
+                                            <property name="allowStaticMemberImports" value="false" />
+                                        </module>
+                                        <module name="CustomImportOrder">
+                                            <property name="customImportOrderRules" value="STANDARD_JAVA_PACKAGE###SPECIAL_IMPORTS###THIRD_PARTY_PACKAGE###STATIC" />
+                                            <property name="specialImportsRegExp" value="^(jakarta|javax)\." />
+                                            <property name="standardPackageRegExp" value="^java\." />
+                                            <property name="sortImportsInGroupAlphabetically" value="true" />
+                                            <property name="separateLineBetweenGroups" value="true" />
+                                        </module>
+                                        <module name="UnusedImports" />
+                                        <module name="EqualsHashCode" />
+                                    </module>
+                                </module>
+                            </checkstyleRules>
+                            <outputFile>${project.build.directory}/checkstyle.log</outputFile>
+                            <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                            <includeResources>true</includeResources>
+                            <includeTestResources>true</includeTestResources>
+                            <consoleOutput>false</consoleOutput>
+                            <logViolationsToConsole>${checkstyle.logViolationsToConsole}</logViolationsToConsole>
+                            <failsOnError>false</failsOnError>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${version.checkstyle}</version>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun</groupId>
+                                <artifactId>tools</artifactId>
+                            </exclusion>
+                        </exclusions>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>com.spotify.fmt</groupId>
+                <artifactId>fmt-maven-plugin</artifactId>
+                <version>${maven.fmt.plugin}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire-plugin.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${surefire-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <systemPropertyVariables>
+                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>native</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                </property>
+            </activation>
+            <properties>
+                <skipITs>false</skipITs>
+                <quarkus.native.enabled>true</quarkus.native.enabled>
+            </properties>
+        </profile>
+    </profiles>
+</project>
