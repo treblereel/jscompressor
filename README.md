@@ -23,17 +23,25 @@ A web application serving as both a user-friendly web interface and a REST API f
 
 #### Docker/Podman
 
+# JVM and Native images are available in the Docker Hub
+`https://hub.docker.com/repository/docker/treblereel/jscompressor/general`
+`https://hub.docker.com/repository/docker/treblereel/jscompressor-native/general`
+
 ## JVM based
 1. Clone the repository
 2. Run `mvn clean package`
 3. Run `docker build -f src/main/docker/Dockerfile.jvm -t quarkus/jscompressor .`
-4. Run `docker run -d -v /home/${username}/${volumes}:/volume:Z -p 80:8080 localhost/quarkus/jscompressor:latest`
+4. Run `docker run -d -v /home/${username}/${volumes}:/volume:Z -p 8080:8080 localhost/quarkus/jscompressor:latest`
 
 ## Native based
 1. Clone the repository
 2. Run `mvn clean package -Pnative`
 3. Run `docker build -f src/main/docker/Dockerfile.native -t quarkus/jscompressor .`
-4. Run `docker run -d -v /home/${username}/${volumes}:/volume:Z -p 80:8080 localhost/quarkus/jscompressor:latest`
+4. Run `docker run -d -v /home/${username}/${volumes}:/volume:Z -p 8080:8080 localhost/quarkus/jscompressor:latest`
+
+Note: You should be familiar with such topics like Docker root/rootless containers, selinux and such topics. For
+instance, if you get `permission denied` error, you should check the selinux context of the volume. That is why I prefer 
+rootless Podman containers, that configure the context automatically.
 
 Tips: If you are a mac user, check you build the native image for Linux. (docs docker buildx)
 
@@ -68,7 +76,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 If you like this project, consider donating to the developer:
 
-- [Patreon](https://www.patreon.com/{placeholder})
+- [Patreon](https://www.patreon.com/c/high_on_toes/membership)
 - [BuyMeACoffee](https://www.buymeacoffee.com/{placeholder})
 
 ### Bugs and Feature Requests
