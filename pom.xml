@@ -9,8 +9,10 @@
         <developer>
             <name>Dmitrii Tikhomirov</name>
             <email>treblereel@crysknife.io</email>
+            <url>https://www.linkedin.com/in/treblereel</url>
         </developer>
     </developers>
+
 
     <licenses>
         <license>
@@ -19,8 +21,9 @@
         </license>
     </licenses>
 
+    <name>JS Compressor</name>
     <description>A web application serving as both a user-friendly web interface and a REST API for Google's Closure Compiler.</description>
-
+    <url>https://github.com/treblereel/jscompressor/</url>
     <inceptionYear>2025</inceptionYear>
     <issueManagement>
         <system>GitHub</system>
