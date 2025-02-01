@@ -48,7 +48,7 @@
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.version>3.17.5</quarkus.platform.version>
 
-        <closure-compiler.version>v20230802</closure-compiler.version>
+        <closure-compiler.version>v20240317</closure-compiler.version>
         <commons-io.version>2.18.0</commons-io.version>
 
         <surefire-plugin.version>3.5.0</surefire-plugin.version>
