@@ -479,6 +479,13 @@ hello('New user');`,
         <div class="flex-1 overflow-auto p-1">
             <div x-show="activeTab === 'compiledCode'" class="space-y-1 max-h-80">
 
+                <button
+                        @click="navigator.clipboard.writeText($store.compiler.compiledCode)"
+                        class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded shadow hover:bg-green-600 transition"
+                >
+                    Copy code to the clipboard
+                </button>
+
                 <pre class="text-xs bg-gray-200 p-2 rounded overflow-auto">
                     <code x-text="$store.compiler.compiledCode"></code>
               </pre>
