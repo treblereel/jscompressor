@@ -9,8 +9,10 @@
         <developer>
             <name>Dmitrii Tikhomirov</name>
             <email>treblereel@crysknife.io</email>
+            <url>https://www.linkedin.com/in/treblereel</url>
         </developer>
     </developers>
+
 
     <licenses>
         <license>
@@ -19,8 +21,9 @@
         </license>
     </licenses>
 
+    <name>JS Compressor</name>
     <description>A web application serving as both a user-friendly web interface and a REST API for Google's Closure Compiler.</description>
-
+    <url>https://github.com/treblereel/jscompressor/</url>
     <inceptionYear>2025</inceptionYear>
     <issueManagement>
         <system>GitHub</system>
@@ -48,7 +51,7 @@
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.version>3.17.5</quarkus.platform.version>
 
-        <closure-compiler.version>v20230802</closure-compiler.version>
+        <closure-compiler.version>v20240317</closure-compiler.version>
         <commons-io.version>2.18.0</commons-io.version>
 
         <surefire-plugin.version>3.5.0</surefire-plugin.version>
