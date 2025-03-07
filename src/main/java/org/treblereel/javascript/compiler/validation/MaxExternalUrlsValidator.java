@@ -19,25 +19,23 @@ package org.treblereel.javascript.compiler.validation;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-import io.quarkus.runtime.annotations.StaticInitSafe;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.treblereel.javascript.compiler.config.ServerConfig;
 
 @ApplicationScoped
 public class MaxExternalUrlsValidator
     implements ConstraintValidator<MaxExternalUrls, List<String>> {
 
-  @StaticInitSafe
-  @ConfigProperty(name = "download.urls.pre-request", defaultValue = "10")
-  long maxUrlsPerRequest;
+  @Inject ServerConfig serverConfig;
 
   @Override
   public boolean isValid(List<String> urls, ConstraintValidatorContext context) {
     if (urls == null) {
       return true;
     }
-    return urls.size() <= maxUrlsPerRequest;
+    return urls.size() <= serverConfig.downloadUrlsPreRequest();
   }
 }

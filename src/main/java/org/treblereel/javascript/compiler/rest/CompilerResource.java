@@ -45,11 +45,11 @@ import com.google.javascript.jscomp.Result;
 import com.google.javascript.jscomp.SourceFile;
 import com.google.javascript.jscomp.WarningLevel;
 import io.vertx.ext.web.RoutingContext;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.faulttolerance.Bulkhead;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.jboss.logging.Logger;
 import org.treblereel.javascript.compiler.cache.FileCache;
+import org.treblereel.javascript.compiler.config.ServerConfig;
 import org.treblereel.javascript.compiler.domain.CompileRequest;
 import org.treblereel.javascript.compiler.domain.CompileResponse;
 import org.treblereel.javascript.compiler.domain.Statistics;
@@ -69,21 +69,13 @@ public class CompilerResource {
 
   @Inject FileCache cache;
 
-  @ConfigProperty(name = "cache.max-size", defaultValue = "102400")
-  long maxCacheSize;
-
-  @ConfigProperty(name = "download.file.max-size", defaultValue = "1048576")
-  long maxRequestSize;
-
-  @ConfigProperty(name = "download.urls.pre-request", defaultValue = "10")
-  long maxUrlsPerRequest;
+  @Inject ServerConfig serverConfig;
 
   @PostConstruct
   public void init() {
-
-    System.out.println("Cache max size: " + maxCacheSize);
-    System.out.println("Download file max size: " + maxRequestSize);
-    System.out.println("Download urls per request: " + maxUrlsPerRequest);
+    System.out.println("Cache max size: " + serverConfig.cacheMaxSize());
+    System.out.println("Download file max size: " + serverConfig.downloadFileMaxSize());
+    System.out.println("Download urls per request: " + serverConfig.downloadUrlsPreRequest());
   }
 
   @POST

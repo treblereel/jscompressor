@@ -19,31 +19,33 @@ package org.treblereel.javascript.compiler.rest;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
-import io.quarkus.runtime.annotations.StaticInitSafe;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.treblereel.javascript.compiler.config.ServerConfig;
 
 @Provider
+@ApplicationScoped
 public class RequestSizeFilter implements ContainerRequestFilter {
 
-  @StaticInitSafe
-  @ConfigProperty(name = "download.file.max-size", defaultValue = "102400")
-  long maxRequestSize;
+  @Inject
+  jakarta.inject.Provider<ServerConfig> serverConfig;
 
   @Override
   public void filter(ContainerRequestContext requestContext) throws IOException {
     String contentLengthHeader = requestContext.getHeaderString("Content-Length");
+    ServerConfig config = serverConfig.get();
     if (contentLengthHeader != null) {
       try {
         long contentLength = Long.parseLong(contentLengthHeader);
-        if (contentLength > maxRequestSize) {
+        if (contentLength > config.downloadFileMaxSize()) {
           requestContext.abortWith(
                   Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
-                          .entity("Request size exceeds the maximum limit of " + maxRequestSize + " bytes")
+                          .entity("Request size exceeds the maximum limit of " + config.downloadFileMaxSize() + " bytes")
                           .build());
           return;
         }
@@ -57,10 +59,10 @@ public class RequestSizeFilter implements ContainerRequestFilter {
 
     if (requestContext.hasEntity()) {
       byte[] entity = requestContext.getEntityStream().readAllBytes();
-      if (entity.length > maxRequestSize) {
+      if (entity.length > config.downloadFileMaxSize()) {
         requestContext.abortWith(
                 Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
-                        .entity("Request size exceeds the maximum limit of " + maxRequestSize + " bytes")
+                        .entity("Request size exceeds the maximum limit of " + config.downloadFileMaxSize() + " bytes")
                         .build());
       } else {
         requestContext.setEntityStream(new ByteArrayInputStream(entity));

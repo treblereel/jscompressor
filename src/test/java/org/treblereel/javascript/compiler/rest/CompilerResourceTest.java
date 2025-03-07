@@ -216,4 +216,51 @@ public class CompilerResourceTest {
     assertTrue(bulkheadRejectedCount.get() >= 5, "No less than 5 requests should be rejected");
   }
 
+  // export MAX_DOWNLOAD_FILE_SIZE=20971520 before test
+  @Test
+  public void testCompileLargerFile() {
+    CompileRequest compileRequest = new CompileRequest();
+
+    StringBuilder sb = new StringBuilder();
+    int chuckSize = 100;
+    int chuckCount = 20000;
+
+    for (int i = 0; i < chuckCount; i++) {
+      sb.append("var t" + i + " = \"");
+      sb.append("a".repeat(chuckSize));
+      sb.append("\"\n");
+    }
+
+    String largeString = sb.toString();
+    compileRequest.setPayload(largeString);
+    compileRequest.setCompilationLevel("Advanced");
+    compileRequest.setWarningLevel("DEFAULT");
+    compileRequest.setOutputFileName("default.js");
+    compileRequest.setFormatting(new Formatting(false, false));
+    compileRequest.setExternalScripts(new ExternalScripts());
+
+    String json = jsonb.toJson(compileRequest);
+
+    //write json to file
+    //try (FileWriter file = new FileWriter("compileRequest.json")) {
+    //  file.write(json);
+    //} catch (IOException e) {
+    //  throw new RuntimeException(e);
+    //}
+
+    given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/compile")
+            .then()
+            .statusCode(200)
+            .body("compiledCode", is("'use strict';"))
+            .body("downloadId", notNullValue())
+            .body("errors", hasSize(0))
+            .body("statistics.compiledSize", is(13))
+            .body("statistics.originalSize", is(2308890))
+            .body("warnings", hasSize(0));
+  }
+
 }
