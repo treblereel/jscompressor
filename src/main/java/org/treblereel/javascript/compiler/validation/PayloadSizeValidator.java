@@ -19,24 +19,24 @@ package org.treblereel.javascript.compiler.validation;
 import java.nio.charset.StandardCharsets;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-import io.quarkus.runtime.annotations.StaticInitSafe;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.treblereel.javascript.compiler.config.ServerConfig;
 
 @ApplicationScoped
 public class PayloadSizeValidator implements ConstraintValidator<MaxPayloadSize, String> {
 
-  @StaticInitSafe
-  @ConfigProperty(name = "download.file.max-size", defaultValue = "1048576")
-  long maxRequestSize;
+  @Inject
+  Provider<ServerConfig> serverConfig;
 
   @Override
   public boolean isValid(String value, ConstraintValidatorContext context) {
     if (value == null) {
       return true;
     }
-    return value.getBytes(StandardCharsets.UTF_8).length <= maxRequestSize;
+    return value.getBytes(StandardCharsets.UTF_8).length <= serverConfig.get().downloadFileMaxSize();
   }
 }

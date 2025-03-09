@@ -25,27 +25,21 @@ import java.util.Comparator;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
-import io.quarkus.runtime.annotations.StaticInitSafe;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.treblereel.javascript.compiler.config.ServerConfig;
 
 @ApplicationScoped
 public class FileCache {
 
-  @StaticInitSafe
-  @ConfigProperty(name = "cache.location", defaultValue = "cache")
-  String location;
-
-
-  @StaticInitSafe
-  @ConfigProperty(name = "cache.max-size", defaultValue = "102400")
-  long maxCacheSize;
+  @Inject
+  ServerConfig serverConfig;
 
   @PostConstruct
   public void init() {
-    Path path = Paths.get(location);
+    Path path = Paths.get(serverConfig.cacheLocation());
     if (!path.toFile().exists()) {
-      throw new RuntimeException("Cache location does not exist: " + location);
+      throw new RuntimeException("Cache location does not exist: " + serverConfig.cacheLocation());
     }
     if (path.resolve("cache").toFile().exists()) {
       path.resolve("cache").toFile().mkdirs();
@@ -62,7 +56,7 @@ public class FileCache {
   }
 
   public byte[] get(String filename) throws Exception {
-    Path path = Paths.get(location, filename);
+    Path path = Paths.get(serverConfig.cacheLocation(), filename);
     if (!path.toFile().exists()) {
       return null;
     }
@@ -70,12 +64,12 @@ public class FileCache {
   }
 
   private boolean checkFileExists(String filename) {
-    Path path = Paths.get(location, filename);
+    Path path = Paths.get(serverConfig.cacheLocation(), filename);
     return path.toFile().exists();
   }
 
   private void writeFileToCache(String filename, byte[] content) throws Exception {
-    Path path = Paths.get(location, filename);
+    Path path = Paths.get(serverConfig.cacheLocation(), filename);
     path.toFile().createNewFile();
     Files.write(path, content);
   }
@@ -96,23 +90,23 @@ public class FileCache {
   }
 
   private boolean checkSpace(byte[] content) throws Exception {
-    Path path = Paths.get(location);
+    Path path = Paths.get(serverConfig.cacheLocation());
 
     if (!path.toFile().exists()) {
-      throw new Exception("Cache location does not exist: " + location);
+      throw new Exception("Cache location does not exist: " + serverConfig.cacheLocation());
     }
 
-    File directory = Paths.get(location).toFile();
+    File directory = Paths.get(serverConfig.cacheLocation()).toFile();
     long totalSize =
         Arrays.stream(directory.listFiles()).filter(File::isFile).mapToLong(File::length).sum();
-    return totalSize + content.length <= maxCacheSize;
+    return totalSize + content.length <= serverConfig.cacheMaxSize();
   }
 
   private File findOldestFile() throws Exception {
-    File directory = Paths.get(location).toFile();
+    File directory = Paths.get(serverConfig.cacheLocation()).toFile();
 
     if (!directory.isDirectory()) {
-      throw new Exception("Cache location is not a directory: " + location);
+      throw new Exception("Cache location is not a directory: " + serverConfig.cacheLocation());
     }
 
     File[] files = directory.listFiles();

@@ -25,11 +25,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import com.google.javascript.jscomp.SourceFile;
-import io.quarkus.runtime.annotations.StaticInitSafe;
 import org.apache.commons.io.IOUtils;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.treblereel.javascript.compiler.config.ServerConfig;
 
 @ApplicationScoped
 public class FileDownloader {
@@ -52,9 +52,8 @@ public class FileDownloader {
                 }
             };
 
-    @StaticInitSafe
-    @ConfigProperty(name = "download.file.max-size", defaultValue = "1048576")
-    long maxRequestSize;
+    @Inject
+    ServerConfig serverConfig;
 
     public SourceFile downloadFile(String fileUrl) throws IOException {
         if (buildin.contains(fileUrl)) {
@@ -76,7 +75,7 @@ public class FileDownloader {
 
             String content =
                     IOUtils.toString(
-                            new LimitedInputStream(inputStream, maxRequestSize), StandardCharsets.UTF_8);
+                            new LimitedInputStream(inputStream, serverConfig.downloadFileMaxSize()), StandardCharsets.UTF_8);
             return SourceFile.fromCode(fileUrl + ".js", content);
         } catch (Exception e) {
             throw new IOException(
@@ -94,18 +93,18 @@ public class FileDownloader {
 
         if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
             long contentLength = connection.getContentLengthLong();
-            if (contentLength > maxRequestSize) {
+            if (contentLength > serverConfig.downloadFileMaxSize()) {
                 throw new IOException(
                         "File is too large to download: "
                                 + contentLength
                                 + " bytes (max: "
-                                + maxRequestSize
+                                + serverConfig.downloadFileMaxSize()
                                 + " bytes)");
             }
 
             try (InputStream inputStream = connection.getInputStream()) {
                 return IOUtils.toString(
-                        new LimitedInputStream(inputStream, maxRequestSize), StandardCharsets.UTF_8);
+                        new LimitedInputStream(inputStream, serverConfig.downloadFileMaxSize()), StandardCharsets.UTF_8);
             } catch (Exception e) {
                 throw new IOException(
                         "Failed to load resource: "
