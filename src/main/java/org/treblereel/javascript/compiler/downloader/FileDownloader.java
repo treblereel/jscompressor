@@ -94,12 +94,9 @@ public class FileDownloader {
         if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
             long contentLength = connection.getContentLengthLong();
             if (contentLength > serverConfig.downloadFileMaxSize()) {
-                throw new IOException(
-                        "File is too large to download: "
-                                + contentLength
-                                + " bytes (max: "
-                                + serverConfig.downloadFileMaxSize()
-                                + " bytes)");
+                throw new IOException(String.format(
+                        "File %s is too large to download: %d bytes (max: %d bytes)",
+                        fileUrl, contentLength, serverConfig.downloadFileMaxSize()));
             }
 
             try (InputStream inputStream = connection.getInputStream()) {
@@ -112,11 +109,9 @@ public class FileDownloader {
                                 + (e.getMessage() != null ? " - " + e.getMessage() : ""));
             }
         } else {
-            throw new IOException(
-                    "Failed to download file: HTTP "
-                            + connection.getResponseCode()
-                            + " - "
-                            + connection.getResponseMessage());
+            throw new IOException(String.format(
+                    "Failed to download file %s: HTTP %d - %s",
+                    fileUrl, connection.getResponseCode(), connection.getResponseMessage()));
         }
     }
 
