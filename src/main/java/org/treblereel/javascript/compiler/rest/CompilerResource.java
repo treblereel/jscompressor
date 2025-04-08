@@ -128,7 +128,7 @@ public class CompilerResource {
       } catch (IOException e) {
         String msg = String.format("Failed to download file: %s, %s", url, e.getMessage());
         return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", msg))
+            .entity(Map.of("error", "Failed to download file: " + e.getMessage()))
             .type(MediaType.APPLICATION_JSON)
             .build();
       }
@@ -136,8 +136,18 @@ public class CompilerResource {
 
     options.setEnvironment(CompilerOptions.Environment.BROWSER);
     options.setDependencyOptions(DependencyOptions.sortOnly());
-    options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
-    options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+
+    if (request.getLanguage() == null) {
+      options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+      options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+    } else {
+      if (request.getLanguage().getLanguageIn() != null) {
+        options.setLanguageIn(CompilerOptions.LanguageMode.fromString(request.getLanguage().getLanguageIn()));
+      }
+      if (request.getLanguage().getLanguageOut() != null) {
+        options.setLanguageOut(CompilerOptions.LanguageMode.fromString(request.getLanguage().getLanguageOut()));
+      }
+    }
 
     if (request.getFormatting() != null) {
       options.setPrettyPrint(request.getFormatting().prettyPrint);

@@ -28,14 +28,21 @@ public class CompileRequest {
   private String compilationLevel;
   private String warningLevel;
 
-  @NotNull @ValidFileName private String outputFileName;
+  @NotNull
+  @ValidFileName
+  private String outputFileName;
 
-  @MaxPayloadSize private String payload;
+  private LanguageInOut language;
+
+  @MaxPayloadSize
+  private String payload;
   private Formatting formatting;
 
-  @Valid private ExternalScripts externalScripts;
+  @Valid
+  private ExternalScripts externalScripts;
 
-  public CompileRequest() {}
+  public CompileRequest() {
+  }
 
   public String getCompilationLevel() {
     return compilationLevel;
@@ -85,27 +92,12 @@ public class CompileRequest {
     this.externalScripts = externalScripts;
   }
 
-  public String toString() {
-    return "CompileRequest{"
-        + "compilationLevel='"
-        + compilationLevel
-        + '\''
-        + ", warningLevel='"
-        + warningLevel
-        + '\''
-        + ", outputFileName='"
-        + outputFileName
-        + '\''
-        + ", formatting='"
-        + formatting
-        + '\''
-        + ", workload='"
-        + payload
-        + '\''
-        + ", externalScripts='"
-        + externalScripts
-        + '\''
-        + '}';
+  public LanguageInOut getLanguage() {
+    return language;
+  }
+
+  public void setLanguage(LanguageInOut language) {
+    this.language = language;
   }
 
   @Override
@@ -113,17 +105,24 @@ public class CompileRequest {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     CompileRequest that = (CompileRequest) o;
-    return Objects.equals(compilationLevel, that.compilationLevel)
-        && Objects.equals(warningLevel, that.warningLevel)
-        && Objects.equals(outputFileName, that.outputFileName)
-        && Objects.equals(payload, that.payload)
-        && Objects.equals(formatting, that.formatting)
-        && Objects.equals(externalScripts, that.externalScripts);
+    return Objects.equals(compilationLevel, that.compilationLevel) && Objects.equals(warningLevel, that.warningLevel) && Objects.equals(outputFileName, that.outputFileName) && Objects.equals(language, that.language) && Objects.equals(payload, that.payload) && Objects.equals(formatting, that.formatting) && Objects.equals(externalScripts, that.externalScripts);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        compilationLevel, warningLevel, outputFileName, payload, formatting, externalScripts);
+    return Objects.hash(compilationLevel, warningLevel, outputFileName, language, payload, formatting, externalScripts);
+  }
+
+  @Override
+  public String toString() {
+    return "CompileRequest{" +
+            "compilationLevel='" + compilationLevel + '\'' +
+            ", warningLevel='" + warningLevel + '\'' +
+            ", outputFileName='" + outputFileName + '\'' +
+            ", language='" + language + '\'' +
+            ", payload='" + payload + '\'' +
+            ", formatting=" + formatting +
+            ", externalScripts=" + externalScripts +
+            '}';
   }
 }
