@@ -59,17 +59,23 @@ import org.treblereel.javascript.compiler.externs.ExternsProcessor;
 @Path("/compile")
 public class CompilerResource {
 
-  @Inject ExternsProcessor externsProcessor;
+  @Inject
+  ExternsProcessor externsProcessor;
 
-  @Inject RoutingContext context;
+  @Inject
+  RoutingContext context;
 
-  @Inject Logger logger;
+  @Inject
+  Logger logger;
 
-  @Inject FileDownloader fileDownloader;
+  @Inject
+  FileDownloader fileDownloader;
 
-  @Inject FileCache cache;
+  @Inject
+  FileCache cache;
 
-  @Inject ServerConfig serverConfig;
+  @Inject
+  ServerConfig serverConfig;
 
   @PostConstruct
   public void init() {
@@ -127,16 +133,28 @@ public class CompilerResource {
         externalSourceSize += file.getCode().length();
       } catch (IOException e) {
         return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", "Failed to download file: " + e.getMessage()))
-            .type(MediaType.APPLICATION_JSON)
-            .build();
+                .entity(Map.of("error", "Failed to download file: " + e.getMessage()))
+                .type(MediaType.APPLICATION_JSON)
+                .build();
       }
     }
 
     options.setEnvironment(CompilerOptions.Environment.BROWSER);
     options.setDependencyOptions(DependencyOptions.sortOnly());
-    options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
-    options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+
+    if (request.getLanguage() == null) {
+      options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+      options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+    } else {
+      if (request.getLanguage().getLanguageIn() != null) {
+        options.setLanguageIn(CompilerOptions.LanguageMode.fromString(request.getLanguage().getLanguageIn()));
+      }
+      if (request.getLanguage().getLanguageOut() != null) {
+        options.setLanguageOut(CompilerOptions.LanguageMode.fromString(request.getLanguage().getLanguageOut()));
+      }
+    }
+
+    System.out.println("Language : " + request.getLanguage());
 
     if (request.getFormatting() != null) {
       options.setPrettyPrint(request.getFormatting().prettyPrint);
@@ -162,9 +180,9 @@ public class CompilerResource {
         cache.put(hash, compiler.toSource().getBytes(StandardCharsets.UTF_8));
       } catch (Exception e) {
         return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", "Failed to cache compiled code: " + e.getMessage()))
-            .type(MediaType.APPLICATION_JSON)
-            .build();
+                .entity(Map.of("error", "Failed to cache compiled code: " + e.getMessage()))
+                .type(MediaType.APPLICATION_JSON)
+                .build();
       }
       response.setDownloadId(hash);
     } else {
@@ -172,9 +190,9 @@ public class CompilerResource {
     }
 
     List<String> warnings =
-        result.warnings.stream().map(JSError::toString).collect(Collectors.toList());
+            result.warnings.stream().map(JSError::toString).collect(Collectors.toList());
     List<String> errors =
-        result.errors.stream().map(JSError::toString).collect(Collectors.toList());
+            result.errors.stream().map(JSError::toString).collect(Collectors.toList());
 
     response.setWarnings(warnings);
     response.setErrors(errors);
@@ -182,17 +200,17 @@ public class CompilerResource {
     Statistics stats = new Statistics();
     stats.setOriginalSize(request.getPayload().length() + externalSourceSize);
     stats.setCompiledSize(
-        response.getCompiledCode() != null ? response.getCompiledCode().length() : 0);
+            response.getCompiledCode() != null ? response.getCompiledCode().length() : 0);
     response.setStatistics(stats);
 
     logger.info(
-        "compilation took "
-            + (System.currentTimeMillis() - start)
-            + "ms, payload size: "
-            + stats.getOriginalSize()
-            + " bytes, compiled size: "
-            + stats.getCompiledSize()
-            + " bytes");
+            "compilation took "
+                    + (System.currentTimeMillis() - start)
+                    + "ms, payload size: "
+                    + stats.getOriginalSize()
+                    + " bytes, compiled size: "
+                    + stats.getCompiledSize()
+                    + " bytes");
     return Response.ok(response).build();
   }
 
@@ -207,16 +225,16 @@ public class CompilerResource {
       bytes = cache.get(hash);
     } catch (Exception e) {
       return Response.status(Response.Status.NOT_FOUND)
-          .entity("No compiled code found for hash " + hash)
-          .build();
+              .entity("No compiled code found for hash " + hash)
+              .build();
     }
     if (bytes == null) {
       return Response.status(Response.Status.NOT_FOUND)
-          .entity("No compiled code found for hash " + hash)
-          .build();
+              .entity("No compiled code found for hash " + hash)
+              .build();
     }
     return Response.ok(bytes)
-        .header("Content-Disposition", "attachment; filename=\"default.js\"")
-        .build();
+            .header("Content-Disposition", "attachment; filename=\"default.js\"")
+            .build();
   }
 }
