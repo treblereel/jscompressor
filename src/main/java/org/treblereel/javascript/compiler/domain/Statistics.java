@@ -19,14 +19,22 @@ package org.treblereel.javascript.compiler.domain;
 import java.util.Objects;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @RegisterForReflection
+@Schema(
+        name = "Statistics",
+        description = "Statistics is a class that represents the statistics of the compilation process.")
 public class Statistics {
 
+  @Schema(description = "Size of the original JavaScript code in bytes.")
   private long originalSize;
+
+  @Schema(description = "Size of the compiled JavaScript code in bytes.")
   private long compiledSize;
 
-  public Statistics() {}
+  public Statistics() {
+  }
 
   public Statistics(long originalSize, long compiledSize) {
     this.originalSize = originalSize;

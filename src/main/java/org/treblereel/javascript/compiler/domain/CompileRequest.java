@@ -21,24 +21,41 @@ import java.util.Objects;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.treblereel.javascript.compiler.validation.MaxPayloadSize;
 import org.treblereel.javascript.compiler.validation.ValidFileName;
 
+
+@Schema(name = "CompileRequest",
+        description = "CompileRequest is a request to compile JavaScript code.")
 public class CompileRequest {
+
+  @Schema(description = "Compilation level. Possible values: WHITESPACE, SIMPLE, ADVANCED.", enumeration = "WHITESPACE, SIMPLE, ADVANCED")
   private String compilationLevel;
+  @Schema(description = "Warning level. Possible values: QUIET, DEFAULT, VERBOSE.", enumeration = "QUIET, DEFAULT, VERBOSE")
   private String warningLevel;
 
   @NotNull
   @ValidFileName
+  @Schema(description = "Output file name. Must be a valid file name.")
   private String outputFileName;
 
+  @Schema(description = "Language input and output",
+          implementation = LanguageInOut.class)
   private LanguageInOut language;
 
   @MaxPayloadSize
+  @Schema(description = "JavaScript code to be compiled.",
+          type = SchemaType.STRING)
   private String payload;
+
+  @Schema(description = "Formatting options.", implementation = Formatting.class)
   private Formatting formatting;
 
   @Valid
+  @Schema(description = "External scripts to be included in the compilation.",
+          implementation = ExternalScripts.class)
   private ExternalScripts externalScripts;
 
   public CompileRequest() {
