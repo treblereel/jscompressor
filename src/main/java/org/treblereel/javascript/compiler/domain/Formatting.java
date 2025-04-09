@@ -18,12 +18,26 @@ package org.treblereel.javascript.compiler.domain;
 
 import java.util.Objects;
 
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
+@Schema(
+        name = "Formatting",
+        description =
+                "Formatting is a class that represents the formatting options for JavaScript compilation.")
 public class Formatting {
 
+  @Schema(
+          description = "If true, the output will be pretty-printed.",
+          defaultValue = "false")
   public boolean prettyPrint;
+
+  @Schema(
+          description = "If true, the input delimiter will be printed.",
+          defaultValue = "false")
   public boolean printInputDelimiter;
 
-  public Formatting() {}
+  public Formatting() {
+  }
 
   public Formatting(boolean prettyPrint, boolean printInputDelimiter) {
     this.prettyPrint = prettyPrint;
@@ -48,11 +62,11 @@ public class Formatting {
 
   public String toString() {
     return "Formatting{"
-        + "prettyPrint="
-        + prettyPrint
-        + ", printInputDelimiter="
-        + printInputDelimiter
-        + '}';
+            + "prettyPrint="
+            + prettyPrint
+            + ", printInputDelimiter="
+            + printInputDelimiter
+            + '}';
   }
 
   @Override
