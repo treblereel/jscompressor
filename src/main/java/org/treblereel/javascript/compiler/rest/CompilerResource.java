@@ -44,6 +44,8 @@ import com.google.javascript.jscomp.JSError;
 import com.google.javascript.jscomp.Result;
 import com.google.javascript.jscomp.SourceFile;
 import com.google.javascript.jscomp.WarningLevel;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
 import io.vertx.ext.web.RoutingContext;
 import org.eclipse.microprofile.faulttolerance.Bulkhead;
 import org.eclipse.microprofile.faulttolerance.Timeout;
@@ -89,6 +91,8 @@ public class CompilerResource {
   @Produces(MediaType.APPLICATION_JSON)
   @Bulkhead(value = 5, waitingTaskQueue = 5)
   @Timeout(value = 120, unit = ChronoUnit.SECONDS)
+  @Timed(value = "compile", extraTags = {"method", "POST"}, description = "Time taken to compile")
+  @Counted(value = "compile", extraTags = {"method", "POST"}, description = "Number of compilations")
   public Response compile(@Valid CompileRequest request) {
     logger.info("received request from " + context.request().remoteAddress().host());
 
@@ -154,8 +158,6 @@ public class CompilerResource {
       }
     }
 
-    System.out.println("Language : " + request.getLanguage());
-
     if (request.getFormatting() != null) {
       options.setPrettyPrint(request.getFormatting().prettyPrint);
       options.setPrintInputDelimiter(request.getFormatting().printInputDelimiter);
@@ -219,6 +221,8 @@ public class CompilerResource {
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   @Bulkhead(value = 10, waitingTaskQueue = 5)
   @Timeout(value = 20, unit = ChronoUnit.SECONDS)
+  @Timed(value = "read", extraTags = {"method", "GET"}, description = "Time taken to read")
+  @Counted(value = "read", extraTags = {"method", "GET"}, description = "Number of reads")
   public Response read(@PathParam("hash") String hash) {
     byte[] bytes = new byte[0];
     try {
