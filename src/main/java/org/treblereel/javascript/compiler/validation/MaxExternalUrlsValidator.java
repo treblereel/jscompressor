@@ -20,6 +20,7 @@ import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
@@ -29,13 +30,13 @@ import org.treblereel.javascript.compiler.config.ServerConfig;
 public class MaxExternalUrlsValidator
     implements ConstraintValidator<MaxExternalUrls, List<String>> {
 
-  @Inject ServerConfig serverConfig;
+  @Inject Provider<ServerConfig> serverConfig;
 
   @Override
   public boolean isValid(List<String> urls, ConstraintValidatorContext context) {
     if (urls == null) {
       return true;
     }
-    return urls.size() <= serverConfig.downloadUrlsPreRequest();
+    return urls.size() <= serverConfig.get().downloadUrlsPreRequest();
   }
 }

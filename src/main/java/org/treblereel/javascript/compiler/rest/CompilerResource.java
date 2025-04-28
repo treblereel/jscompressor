@@ -44,9 +44,22 @@ import com.google.javascript.jscomp.JSError;
 import com.google.javascript.jscomp.Result;
 import com.google.javascript.jscomp.SourceFile;
 import com.google.javascript.jscomp.WarningLevel;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
 import io.vertx.ext.web.RoutingContext;
 import org.eclipse.microprofile.faulttolerance.Bulkhead;
 import org.eclipse.microprofile.faulttolerance.Timeout;
+import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.info.Info;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.servers.Server;
 import org.jboss.logging.Logger;
 import org.treblereel.javascript.compiler.cache.FileCache;
 import org.treblereel.javascript.compiler.config.ServerConfig;
@@ -57,19 +70,33 @@ import org.treblereel.javascript.compiler.downloader.FileDownloader;
 import org.treblereel.javascript.compiler.externs.ExternsProcessor;
 
 @Path("/compile")
+@OpenAPIDefinition(
+        info = @Info(
+                title = "JavaScript Compiler API",
+                version = "0.5",
+                description = "API for compiling JavaScript code using Google Closure Compiler"
+        ),
+        servers = @Server(url = "https://jscompressor.treblereel.dev/", description = "Production server")
+)
 public class CompilerResource {
 
-  @Inject ExternsProcessor externsProcessor;
+  @Inject
+  ExternsProcessor externsProcessor;
 
-  @Inject RoutingContext context;
+  @Inject
+  RoutingContext context;
 
-  @Inject Logger logger;
+  @Inject
+  Logger logger;
 
-  @Inject FileDownloader fileDownloader;
+  @Inject
+  FileDownloader fileDownloader;
 
-  @Inject FileCache cache;
+  @Inject
+  FileCache cache;
 
-  @Inject ServerConfig serverConfig;
+  @Inject
+  ServerConfig serverConfig;
 
   @PostConstruct
   public void init() {
@@ -83,6 +110,27 @@ public class CompilerResource {
   @Produces(MediaType.APPLICATION_JSON)
   @Bulkhead(value = 5, waitingTaskQueue = 5)
   @Timeout(value = 120, unit = ChronoUnit.SECONDS)
+  @Timed(value = "compile", extraTags = {"method", "POST"}, description = "Time taken to compile")
+  @Counted(value = "compile", extraTags = {"method", "POST"}, description = "Number of compilations")
+  @Operation(
+          summary = "Compile JavaScript code",
+          description = "Compiles JavaScript code using Google Closure Compiler",
+          operationId = "compileJavaScript"
+  )
+  @RequestBody(
+          content  = @Content(
+                  mediaType = "application/json",
+                  schema    = @Schema(implementation = CompileRequest.class)
+          )
+  )
+  @APIResponse(
+          responseCode = "200",
+          description  = "OK",
+          content      = @Content(
+                  mediaType = "application/json",
+                  schema    = @Schema(implementation = CompileResponse.class)
+          )
+  )
   public Response compile(@Valid CompileRequest request) {
     logger.info("received request from " + context.request().remoteAddress().host());
 
@@ -127,16 +175,26 @@ public class CompilerResource {
         externalSourceSize += file.getCode().length();
       } catch (IOException e) {
         return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", "Failed to download file: " + e.getMessage()))
-            .type(MediaType.APPLICATION_JSON)
-            .build();
+                .entity(Map.of("error", "Failed to download file: " + e.getMessage()))
+                .type(MediaType.APPLICATION_JSON)
+                .build();
       }
     }
 
     options.setEnvironment(CompilerOptions.Environment.BROWSER);
     options.setDependencyOptions(DependencyOptions.sortOnly());
-    options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
-    options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+
+    if (request.getLanguage() == null) {
+      options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+      options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+    } else {
+      if (request.getLanguage().getLanguageIn() != null) {
+        options.setLanguageIn(CompilerOptions.LanguageMode.fromString(request.getLanguage().getLanguageIn()));
+      }
+      if (request.getLanguage().getLanguageOut() != null) {
+        options.setLanguageOut(CompilerOptions.LanguageMode.fromString(request.getLanguage().getLanguageOut()));
+      }
+    }
 
     if (request.getFormatting() != null) {
       options.setPrettyPrint(request.getFormatting().prettyPrint);
@@ -162,9 +220,9 @@ public class CompilerResource {
         cache.put(hash, compiler.toSource().getBytes(StandardCharsets.UTF_8));
       } catch (Exception e) {
         return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", "Failed to cache compiled code: " + e.getMessage()))
-            .type(MediaType.APPLICATION_JSON)
-            .build();
+                .entity(Map.of("error", "Failed to cache compiled code: " + e.getMessage()))
+                .type(MediaType.APPLICATION_JSON)
+                .build();
       }
       response.setDownloadId(hash);
     } else {
@@ -172,9 +230,9 @@ public class CompilerResource {
     }
 
     List<String> warnings =
-        result.warnings.stream().map(JSError::toString).collect(Collectors.toList());
+            result.warnings.stream().map(JSError::toString).collect(Collectors.toList());
     List<String> errors =
-        result.errors.stream().map(JSError::toString).collect(Collectors.toList());
+            result.errors.stream().map(JSError::toString).collect(Collectors.toList());
 
     response.setWarnings(warnings);
     response.setErrors(errors);
@@ -182,17 +240,17 @@ public class CompilerResource {
     Statistics stats = new Statistics();
     stats.setOriginalSize(request.getPayload().length() + externalSourceSize);
     stats.setCompiledSize(
-        response.getCompiledCode() != null ? response.getCompiledCode().length() : 0);
+            response.getCompiledCode() != null ? response.getCompiledCode().length() : 0);
     response.setStatistics(stats);
 
     logger.info(
-        "compilation took "
-            + (System.currentTimeMillis() - start)
-            + "ms, payload size: "
-            + stats.getOriginalSize()
-            + " bytes, compiled size: "
-            + stats.getCompiledSize()
-            + " bytes");
+            "compilation took "
+                    + (System.currentTimeMillis() - start)
+                    + "ms, payload size: "
+                    + stats.getOriginalSize()
+                    + " bytes, compiled size: "
+                    + stats.getCompiledSize()
+                    + " bytes");
     return Response.ok(response).build();
   }
 
@@ -201,22 +259,44 @@ public class CompilerResource {
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   @Bulkhead(value = 10, waitingTaskQueue = 5)
   @Timeout(value = 20, unit = ChronoUnit.SECONDS)
+  @Timed(value = "read", extraTags = {"method", "GET"}, description = "Time taken to read")
+  @Counted(value = "read", extraTags = {"method", "GET"}, description = "Number of reads")
+  @Operation(
+          summary = "Fetch compiled code",
+          description = "Reads compiled code from cache using the provided hash",
+          operationId = "readCompiledCode"
+  )
+  @Parameter(
+          name        = "hash",
+          description = "Hash‑code of the compiled JavaScript file",
+          required    = true,
+          in          = ParameterIn.PATH,
+          schema      = @Schema(type = SchemaType.STRING)
+  )
+  @APIResponse(
+          responseCode = "200",
+          description  = "Javascript file (binary)",
+          content      = @Content(
+                  mediaType = "application/octet-stream",
+                  schema    = @Schema(type = SchemaType.STRING, format = "binary")
+          )
+  )
   public Response read(@PathParam("hash") String hash) {
     byte[] bytes = new byte[0];
     try {
       bytes = cache.get(hash);
     } catch (Exception e) {
       return Response.status(Response.Status.NOT_FOUND)
-          .entity("No compiled code found for hash " + hash)
-          .build();
+              .entity("No compiled code found for hash " + hash)
+              .build();
     }
     if (bytes == null) {
       return Response.status(Response.Status.NOT_FOUND)
-          .entity("No compiled code found for hash " + hash)
-          .build();
+              .entity("No compiled code found for hash " + hash)
+              .build();
     }
     return Response.ok(bytes)
-        .header("Content-Disposition", "attachment; filename=\"default.js\"")
-        .build();
+            .header("Content-Disposition", "attachment; filename=\"default.js\"")
+            .build();
   }
 }

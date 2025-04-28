@@ -4,7 +4,7 @@ A web application serving as both a user-friendly web interface and a REST API f
 ## Getting Started
 
 ### Prerequisites
-- java 17 (GraalVM for native image)
+- java 21 (GraalVM for native image)
 - maven 3.8.3
 - or Docker/Podman (optional)
 

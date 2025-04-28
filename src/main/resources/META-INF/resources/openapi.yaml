@@ -43,6 +43,10 @@ paths:
 
 components:
   schemas:
+    LanguageInOut:
+      type: string
+      description: "Language input and output"
+
     Formatting:
       type: "object"
       properties:
@@ -102,3 +106,5 @@ components:
           $ref: "#/components/schemas/Formatting"
         externalScripts:
           $ref: "#/components/schemas/ExternalScripts"
+        language:
+          $ref: "#/components/schemas/LanguageInOut"
