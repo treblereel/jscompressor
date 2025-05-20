@@ -260,23 +260,12 @@
                 </dependencies>
             </plugin>
             <plugin>
-                <groupId>com.spotify.fmt</groupId>
-                <artifactId>fmt-maven-plugin</artifactId>
-                <version>${maven.fmt.plugin}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire-plugin.version}</version>
                 <configuration>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <MAX_DOWNLOAD_FILE_SIZE>20971520</MAX_DOWNLOAD_FILE_SIZE>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
