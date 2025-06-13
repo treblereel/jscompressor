@@ -22,10 +22,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -66,6 +68,7 @@ import org.treblereel.javascript.compiler.config.ServerConfig;
 import org.treblereel.javascript.compiler.domain.CompileRequest;
 import org.treblereel.javascript.compiler.domain.CompileResponse;
 import org.treblereel.javascript.compiler.domain.Statistics;
+import org.treblereel.javascript.compiler.domain.db.Script;
 import org.treblereel.javascript.compiler.downloader.FileDownloader;
 import org.treblereel.javascript.compiler.externs.ExternsProcessor;
 
@@ -281,22 +284,33 @@ public class CompilerResource {
                   schema    = @Schema(type = SchemaType.STRING, format = "binary")
           )
   )
-  public Response read(@PathParam("hash") String hash) {
-    byte[] bytes = new byte[0];
+  @Transactional
+  public Response read(@PathParam("hash") String hashName) {
+    Optional<Script> scriptOptional = Script.find("hash", hashName).firstResultOptional();
+    if(scriptOptional.isEmpty()) {
+      return Response.status(Response.Status.NOT_FOUND)
+              .entity("No compiled code found for hash " + hashName)
+              .build();
+    }
+    Script script = scriptOptional.get();
+    String fileName = script.getFilename();
+
+    byte[] bytes;
     try {
-      bytes = cache.get(hash);
+      bytes = cache.get(fileName);
     } catch (Exception e) {
       return Response.status(Response.Status.NOT_FOUND)
-              .entity("No compiled code found for hash " + hash)
+              .entity("No compiled code found for hash " + fileName)
               .build();
     }
     if (bytes == null) {
       return Response.status(Response.Status.NOT_FOUND)
-              .entity("No compiled code found for hash " + hash)
+              .entity("No compiled code found for hash " + fileName)
               .build();
     }
+    String result = String.format("attachment; filename=\"%s.js\"", hashName);
     return Response.ok(bytes)
-            .header("Content-Disposition", "attachment; filename=\"default.js\"")
+            .header("Content-Disposition", result)
             .build();
   }
 }

@@ -56,11 +56,19 @@ public class FileCache {
   }
 
   public byte[] get(String filename) throws Exception {
-    Path path = Paths.get(serverConfig.cacheLocation(), filename);
-    if (!path.toFile().exists()) {
+    Path baseDir = Paths.get(serverConfig.cacheLocation())
+            .toAbsolutePath()
+            .normalize();
+    Path target = baseDir.resolve(filename).normalize();
+    if (!target.startsWith(baseDir)) {
+      throw new IllegalArgumentException("Access to files outside the cache directory is not allowed.");
+    }
+
+    if (!Files.exists(target) || !Files.isRegularFile(target)) {
       return null;
     }
-    return Files.readAllBytes(path);
+
+    return Files.readAllBytes(target);
   }
 
   private boolean checkFileExists(String filename) {

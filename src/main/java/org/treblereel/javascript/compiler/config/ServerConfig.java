@@ -36,4 +36,8 @@ public interface ServerConfig {
   @ConfigProperty(defaultValue = "cache")
   String cacheLocation();
 
+
+  @ConfigProperty(defaultValue = "unique.key.length")
+  int uniqueKeyLength();
+
 }
