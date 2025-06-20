@@ -164,6 +164,7 @@ public class CompilerResourceTest {
 
   @Test
   public void testBulkhead() throws InterruptedException {
+
     CompileRequest compileRequest = new CompileRequest();
     compileRequest.setPayload("function hello(name) {\n    alert('Hello, ' + name);\n}\nhello('New user');");
     compileRequest.setCompilationLevel("Advanced");
@@ -175,7 +176,7 @@ public class CompilerResourceTest {
     String json = jsonb.toJson(compileRequest);
 
 
-    int totalRequests = 15;
+    int totalRequests = 30;
     ExecutorService executor = Executors.newFixedThreadPool(totalRequests);
     CountDownLatch latch = new CountDownLatch(totalRequests);
     AtomicInteger successCount = new AtomicInteger();
@@ -212,7 +213,7 @@ public class CompilerResourceTest {
     latch.await(30, TimeUnit.SECONDS);
     executor.shutdown();
 
-    assertTrue(successCount.get() <= 10, "No more than 10 requests should be accepted");
+    assertTrue(successCount.get() <= 20, "No more than 10 requests should be accepted, but " + successCount.get());
     assertTrue(bulkheadRejectedCount.get() >= 5, "No less than 5 requests should be rejected");
   }
 

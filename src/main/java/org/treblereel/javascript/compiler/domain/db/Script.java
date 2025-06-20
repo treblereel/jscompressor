@@ -16,7 +16,9 @@
 
 package org.treblereel.javascript.compiler.domain.db;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import java.time.Instant;
+import java.util.Objects;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -24,11 +26,9 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+
+import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.Instant;
-import java.util.Objects;
-
 
 @Entity
 @Table(

@@ -16,16 +16,16 @@
 
 package org.treblereel.javascript.compiler.domain.db;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
+import io.quarkus.hibernate.orm.panache.PanacheEntity;
 
 @Entity
 public class Person extends PanacheEntity {

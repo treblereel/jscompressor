@@ -34,7 +34,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
+        <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
 
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
@@ -42,7 +42,7 @@
         <maven.license.plugin>4.6</maven.license.plugin>
         <maven.fmt.plugin>2.25</maven.fmt.plugin>
         <maven.checkstyle.plugin>3.2.0</maven.checkstyle.plugin>
-        <version.checkstyle>8.29</version.checkstyle>
+        <version.checkstyle>10.12.3</version.checkstyle>
 
         <checkstyle.failOnViolation>true</checkstyle.failOnViolation>
         <checkstyle.logViolationsToConsole>true</checkstyle.logViolationsToConsole>
