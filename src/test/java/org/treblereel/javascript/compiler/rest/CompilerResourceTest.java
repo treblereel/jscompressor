@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import jakarta.inject.Inject;
 import jakarta.json.bind.Jsonb;
 
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
+@QuarkusTestResource(PostgresTestResource.class)
 public class CompilerResourceTest {
 
   @Inject

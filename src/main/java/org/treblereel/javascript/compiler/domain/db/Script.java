@@ -27,7 +27,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import io.quarkus.hibernate.reactive.panache.PanacheEntity;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
@@ -35,7 +35,7 @@ import org.hibernate.annotations.CreationTimestamp;
         name = "compiled_script",
         indexes = {
                 @Index(name = "idx_script_hash", columnList = "hash"),
-                @Index(name = "idx_script_name", columnList = "name"),
+                @Index(name = "idx_script_filename", columnList = "filename"),
         }
 )
 public class Script extends PanacheEntity {

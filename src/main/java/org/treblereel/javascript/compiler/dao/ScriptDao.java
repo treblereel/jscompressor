@@ -18,10 +18,17 @@ package org.treblereel.javascript.compiler.dao;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
+import org.treblereel.javascript.compiler.domain.db.Script;
+
 @ApplicationScoped
 public class ScriptDao {
 
-
+  public void save(Script script) {
+    if (script == null) {
+      throw new IllegalArgumentException("Script cannot be null");
+    }
+    script.persist();
+  }
 
 
 }

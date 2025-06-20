@@ -33,14 +33,19 @@ import com.google.javascript.jscomp.JSError;
 import com.google.javascript.jscomp.Result;
 import com.google.javascript.jscomp.SourceFile;
 import com.google.javascript.jscomp.WarningLevel;
+import io.quarkus.hibernate.reactive.panache.Panache;
+import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.smallrye.mutiny.Uni;
 import org.jboss.logging.Logger;
 import org.treblereel.javascript.compiler.cache.FileCache;
 import org.treblereel.javascript.compiler.domain.CompileRequest;
 import org.treblereel.javascript.compiler.domain.CompileResponse;
 import org.treblereel.javascript.compiler.domain.Statistics;
+import org.treblereel.javascript.compiler.domain.db.Person;
+import org.treblereel.javascript.compiler.domain.db.Script;
 import org.treblereel.javascript.compiler.downloader.FileDownloader;
 import org.treblereel.javascript.compiler.externs.ExternsProcessor;
+
 
 @RequestScoped
 public class ClosureProcessor {
@@ -57,6 +62,7 @@ public class ClosureProcessor {
     @Inject
     FileCache cache;
 
+    @WithSession
     public Uni<CompileResponse> process(CompileRequest request) {
         return Uni.createFrom().emitter(emitter -> {
             long start = System.currentTimeMillis();
@@ -70,9 +76,26 @@ public class ClosureProcessor {
                 Compiler compiler = compileSources(options, sources);
                 CompileResponse response = buildResponse(request, compiler, externalSize.get());
 
-                logStats(response, start);
+                String hash = Long.toHexString(request.hashCode());
 
-                emitter.complete(response);
+                Person.<Person>findById(1L)
+                        .onItem()
+                        .transformToUni(owner -> {
+                            Script script = new Script(
+                                    request.getOutputFileName(),
+                                    hash,
+                                    String.valueOf(request.hashCode()),
+                                    owner
+                            );
+                            return Panache.withTransaction(script::persist);
+                        })
+                        .subscribe().with(
+                                savedScript -> {
+                                    logStats(response, start);
+                                    emitter.complete(response);
+                                },
+                                failure -> emitter.fail(failure)
+                        );
             } catch (Exception e) {
                 emitter.fail(e);
             }
