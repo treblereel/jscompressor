@@ -1,10 +1,14 @@
+[![Docker Pulls](https://img.shields.io/docker/pulls/treblereel/jscompressor.svg)](https://hub.docker.com/r/treblereel/jscompressor)
+[![Docker Image Version (latest by date)](https://img.shields.io/docker/v/treblereel/jscompressor?sort=semver)](https://hub.docker.com/r/treblereel/jscompressor/tags)
+
+
 ## JSCompressor
 A web application serving as both a user-friendly web interface and a REST API for Google's Closure Compiler.
 
 ## Getting Started
 
 ### Prerequisites
-- java 17 (GraalVM for native image)
+- java 21 (GraalVM for native image)
 - maven 3.8.3
 - or Docker/Podman (optional)
 
