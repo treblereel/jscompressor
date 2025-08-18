@@ -25,6 +25,22 @@
 $jscomp.ASSUME_ES5 = false;
 
 /**
+ * Whether to assume ES6 is available.  This enables removing several
+ * internal polyfills, which must otherwise be detected at runtime.
+ * @define {boolean}
+ */
+$jscomp.ASSUME_ES6 = false;
+
+/**
+ * Whether to assume ES2020 is available.  This enables removing several
+ * internal polyfills, which must otherwise be detected at runtime.
+ * @define {boolean}
+ */
+$jscomp.ASSUME_ES2020 = false;
+
+
+
+/**
  * Whether to skip the conformance check and simply use the polyfill always.
  * @define {boolean}
  */
@@ -35,16 +51,6 @@ $jscomp.ASSUME_NO_NATIVE_MAP = false;
  * @define {boolean}
  */
 $jscomp.ASSUME_NO_NATIVE_SET = false;
-
-/**
- * Whether to provide an incorrect but tiny Math.fround polyfill that just
- * returns the number given.  This is usually okay to do, particularly if
- * `Math.fround` is only used to allow the JavaScript engine to use faster
- * 32-bit float operations, but could cause problems if program logic is
- * dependent on floats being truncated consistently.
- * @define {boolean}
- */
-$jscomp.SIMPLE_FROUND_POLYFILL = false;
 
 /**
  * Whether to isolate all injected polyfills from global state. This is not
@@ -68,3 +74,10 @@ $jscomp.FORCE_POLYFILL_PROMISE = false;
  * @define {boolean}
  */
 $jscomp.FORCE_POLYFILL_PROMISE_WHEN_NO_UNHANDLED_REJECTION = false;
+
+/**
+ * Whether to instrument async/await and monkey-patch language built-ins to
+ * propagate AsyncContext.
+ * @define {boolean}
+ */
+$jscomp.INSTRUMENT_ASYNC_CONTEXT = true;

@@ -51,7 +51,7 @@
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.version>3.19.1</quarkus.platform.version>
 
-        <closure-compiler.version>v20240317</closure-compiler.version>
+        <closure-compiler.version>v20250706</closure-compiler.version>
         <commons-io.version>2.18.0</commons-io.version>
 
         <surefire-plugin.version>3.5.0</surefire-plugin.version>
@@ -127,6 +127,23 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>META-INF/resources/index.html</exclude>
+                </excludes>
+            </resource>
+
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>META-INF/resources/index.html</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>${quarkus.platform.group-id}</groupId>
