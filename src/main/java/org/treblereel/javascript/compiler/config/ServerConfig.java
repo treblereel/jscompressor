@@ -16,24 +16,22 @@
 
 package org.treblereel.javascript.compiler.config;
 
-import io.quarkus.runtime.annotations.StaticInitSafe;
 import io.smallrye.config.ConfigMapping;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import io.smallrye.config.WithDefault;
 
-@StaticInitSafe
 @ConfigMapping(prefix = "server")
 public interface ServerConfig {
 
-  @ConfigProperty(defaultValue = "102400")
+  @WithDefault("102400")
   long downloadFileMaxSize();
 
-  @ConfigProperty(defaultValue = "102400")
+  @WithDefault("102400")
   long cacheMaxSize();
 
-  @ConfigProperty(defaultValue = "10")
+  @WithDefault("10")
   long downloadUrlsPreRequest();
 
-  @ConfigProperty(defaultValue = "cache")
+  @WithDefault("cache")
   String cacheLocation();
 
 }

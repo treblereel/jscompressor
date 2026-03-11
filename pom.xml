@@ -34,22 +34,22 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
+        <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
 
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
 
         <maven.license.plugin>4.6</maven.license.plugin>
         <maven.fmt.plugin>2.25</maven.fmt.plugin>
-        <maven.checkstyle.plugin>3.2.0</maven.checkstyle.plugin>
-        <version.checkstyle>8.29</version.checkstyle>
+        <maven.checkstyle.plugin>3.6.0</maven.checkstyle.plugin>
+        <version.checkstyle>11.0.0</version.checkstyle>
 
         <checkstyle.failOnViolation>true</checkstyle.failOnViolation>
         <checkstyle.logViolationsToConsole>true</checkstyle.logViolationsToConsole>
 
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-        <quarkus.platform.version>3.19.1</quarkus.platform.version>
+        <quarkus.platform.version>3.25.4</quarkus.platform.version>
 
         <closure-compiler.version>v20250706</closure-compiler.version>
         <commons-io.version>2.18.0</commons-io.version>
@@ -170,6 +170,19 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*IT.java</exclude>
+                    </excludes>
+                    <systemPropertyVariables>
+                        <MAX_DOWNLOAD_FILE_SIZE>20971520</MAX_DOWNLOAD_FILE_SIZE>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
                 <version>${maven.license.plugin}</version>
@@ -267,18 +280,6 @@
                         </exclusions>
                     </dependency>
                 </dependencies>
-            </plugin>
-            <plugin>
-                <groupId>com.spotify.fmt</groupId>
-                <artifactId>fmt-maven-plugin</artifactId>
-                <version>${maven.fmt.plugin}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>

@@ -112,11 +112,8 @@ public class FileDownloader {
                                 + (e.getMessage() != null ? " - " + e.getMessage() : ""));
             }
         } else {
-            throw new IOException(
-                    "Failed to download file: HTTP "
-                            + connection.getResponseCode()
-                            + " - "
-                            + connection.getResponseMessage());
+            String msg = String.format("Failed to download file: %s, %s - %s", fileUrl, connection.getResponseCode(), connection.getResponseMessage());
+            throw new IOException(msg);
         }
     }
 

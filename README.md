@@ -5,6 +5,8 @@
 ## JSCompressor
 A web application serving as both a user-friendly web interface and a REST API for Google's Closure Compiler.
 
+## The application is available at https://jscompressor.treblereel.dev/
+
 ## Getting Started
 
 ### Prerequisites

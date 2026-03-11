@@ -126,8 +126,9 @@ public class CompilerResource {
         sources.add(file);
         externalSourceSize += file.getCode().length();
       } catch (IOException e) {
+        String msg = String.format("Failed to download file: %s, %s", url, e.getMessage());
         return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", "Failed to download file: " + e.getMessage()))
+            .entity(Map.of("error", msg))
             .type(MediaType.APPLICATION_JSON)
             .build();
       }
