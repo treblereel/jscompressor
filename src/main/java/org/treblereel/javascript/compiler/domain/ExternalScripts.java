@@ -20,11 +20,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.treblereel.javascript.compiler.validation.MaxExternalUrls;
 
+@Schema(
+        name = "ExternalScripts",
+        description =
+                "ExternalScripts is a class that represents the external scripts to be included in the compilation.")
 public class ExternalScripts {
 
-  @MaxExternalUrls private List<String> urls;
+  @MaxExternalUrls
+  @Schema(
+          description = "List of external scripts to be included in the compilation.",
+          type = SchemaType.ARRAY,
+          implementation = String.class)
+  private List<String> urls;
 
   public ExternalScripts() {
     urls = new ArrayList<>();

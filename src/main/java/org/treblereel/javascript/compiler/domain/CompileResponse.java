@@ -20,25 +20,32 @@ import java.util.List;
 import java.util.Objects;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @RegisterForReflection
+@Schema(name = "CompileResponse", description = "CompileResponse is a response to the compilation request. It contains the compiled code, download ID, warnings, errors, and statistics.")
 public class CompileResponse {
 
+  @Schema(description = "Compiled JavaScript code.", type = SchemaType.STRING)
   private String compiledCode;
 
+  @Schema(description = "Download ID for the compiled code.", type = SchemaType.STRING)
   private String downloadId;
+
+  @Schema(description = "List of warnings generated during compilation.", type = SchemaType.ARRAY, implementation = String.class)
   private List<String> warnings;
+
+  @Schema(description = "List of errors generated during compilation.", type = SchemaType.ARRAY, implementation = String.class)
   private List<String> errors;
+
+  @Schema(description = "Compilation statistics.", implementation = Statistics.class)
   private Statistics statistics;
 
-  public CompileResponse() {}
+  public CompileResponse() {
+  }
 
-  public CompileResponse(
-      String compiledCode,
-      String downloadId,
-      List<String> warnings,
-      List<String> errors,
-      Statistics statistics) {
+  public CompileResponse(String compiledCode, String downloadId, List<String> warnings, List<String> errors, Statistics statistics) {
     this.compiledCode = compiledCode;
     this.downloadId = downloadId;
     this.warnings = warnings;
@@ -91,11 +98,7 @@ public class CompileResponse {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     CompileResponse that = (CompileResponse) o;
-    return Objects.equals(compiledCode, that.compiledCode)
-        && Objects.equals(downloadId, that.downloadId)
-        && Objects.equals(warnings, that.warnings)
-        && Objects.equals(errors, that.errors)
-        && Objects.equals(statistics, that.statistics);
+    return Objects.equals(compiledCode, that.compiledCode) && Objects.equals(downloadId, that.downloadId) && Objects.equals(warnings, that.warnings) && Objects.equals(errors, that.errors) && Objects.equals(statistics, that.statistics);
   }
 
   @Override
@@ -105,19 +108,6 @@ public class CompileResponse {
 
   @Override
   public String toString() {
-    return "CompileResponse{"
-        + "compiledCode='"
-        + compiledCode
-        + '\''
-        + ", downloadId='"
-        + downloadId
-        + '\''
-        + ", warnings="
-        + warnings
-        + ", errors="
-        + errors
-        + ", statistics="
-        + statistics
-        + '}';
+    return "CompileResponse{" + "compiledCode='" + compiledCode + '\'' + ", downloadId='" + downloadId + '\'' + ", warnings=" + warnings + ", errors=" + errors + ", statistics=" + statistics + '}';
   }
 }

@@ -47,6 +47,17 @@ import com.google.javascript.jscomp.WarningLevel;
 import io.vertx.ext.web.RoutingContext;
 import org.eclipse.microprofile.faulttolerance.Bulkhead;
 import org.eclipse.microprofile.faulttolerance.Timeout;
+import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.info.Info;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.servers.Server;
 import org.jboss.logging.Logger;
 import org.treblereel.javascript.compiler.cache.FileCache;
 import org.treblereel.javascript.compiler.config.ServerConfig;
@@ -57,6 +68,14 @@ import org.treblereel.javascript.compiler.downloader.FileDownloader;
 import org.treblereel.javascript.compiler.externs.ExternsProcessor;
 
 @Path("/compile")
+@OpenAPIDefinition(
+        info = @Info(
+                title = "JavaScript Compiler API",
+                version = "0.5",
+                description = "API for compiling JavaScript code using Google Closure Compiler"
+        ),
+        servers = @Server(url = "https://jscompressor.treblereel.dev/", description = "Production server")
+)
 public class CompilerResource {
 
   @Inject ExternsProcessor externsProcessor;
@@ -83,6 +102,25 @@ public class CompilerResource {
   @Produces(MediaType.APPLICATION_JSON)
   @Bulkhead(value = 5, waitingTaskQueue = 5)
   @Timeout(value = 120, unit = ChronoUnit.SECONDS)
+  @Operation(
+          summary = "Compile JavaScript code",
+          description = "Compiles JavaScript code using Google Closure Compiler",
+          operationId = "compileJavaScript"
+  )
+  @RequestBody(
+          content  = @Content(
+                  mediaType = "application/json",
+                  schema    = @Schema(implementation = CompileRequest.class)
+          )
+  )
+  @APIResponse(
+          responseCode = "200",
+          description  = "OK",
+          content      = @Content(
+                  mediaType = "application/json",
+                  schema    = @Schema(implementation = CompileResponse.class)
+          )
+  )
   public Response compile(@Valid CompileRequest request) {
     logger.info("received request from " + context.request().remoteAddress().host());
 
@@ -128,7 +166,7 @@ public class CompilerResource {
       } catch (IOException e) {
         String msg = String.format("Failed to download file: %s, %s", url, e.getMessage());
         return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", msg))
+            .entity(Map.of("error", "Failed to download file: " + e.getMessage()))
             .type(MediaType.APPLICATION_JSON)
             .build();
       }
@@ -136,8 +174,18 @@ public class CompilerResource {
 
     options.setEnvironment(CompilerOptions.Environment.BROWSER);
     options.setDependencyOptions(DependencyOptions.sortOnly());
-    options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
-    options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+
+    if (request.getLanguage() == null) {
+      options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+      options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT_2021);
+    } else {
+      if (request.getLanguage().getLanguageIn() != null) {
+        options.setLanguageIn(CompilerOptions.LanguageMode.fromString(request.getLanguage().getLanguageIn()));
+      }
+      if (request.getLanguage().getLanguageOut() != null) {
+        options.setLanguageOut(CompilerOptions.LanguageMode.fromString(request.getLanguage().getLanguageOut()));
+      }
+    }
 
     if (request.getFormatting() != null) {
       options.setPrettyPrint(request.getFormatting().prettyPrint);
@@ -202,6 +250,26 @@ public class CompilerResource {
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   @Bulkhead(value = 10, waitingTaskQueue = 5)
   @Timeout(value = 20, unit = ChronoUnit.SECONDS)
+  @Operation(
+          summary = "Fetch compiled code",
+          description = "Reads compiled code from cache using the provided hash",
+          operationId = "readCompiledCode"
+  )
+  @Parameter(
+          name        = "hash",
+          description = "Hash‑code of the compiled JavaScript file",
+          required    = true,
+          in          = ParameterIn.PATH,
+          schema      = @Schema(type = SchemaType.STRING)
+  )
+  @APIResponse(
+          responseCode = "200",
+          description  = "Javascript file (binary)",
+          content      = @Content(
+                  mediaType = "application/octet-stream",
+                  schema    = @Schema(type = SchemaType.STRING, format = "binary")
+          )
+  )
   public Response read(@PathParam("hash") String hash) {
     byte[] bytes = new byte[0];
     try {

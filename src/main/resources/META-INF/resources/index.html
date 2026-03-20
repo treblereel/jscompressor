@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:x-transition="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -47,7 +47,10 @@ hello('New user');`,
           optimization: 'Whitespace only',
           prettyPrint: false,
           printInputDelimiter: false,
+          languageIn: 'ECMASCRIPT_2021',
+          languageOut: 'ECMASCRIPT_2021',
           selectedKeys: [],
+          showFormatting: false,
 
           loading: false,
           success: false,
@@ -84,6 +87,10 @@ hello('New user');`,
                 compilationLevel: this.optimization,
                 warningLevel: 'DEFAULT',
                 outputFileName: 'default.js',
+                language: {
+                    languageIn: this.languageIn,
+                    languageOut: this.languageOut
+                },
                 formatting: {
                     prettyPrint: this.prettyPrint,
                     printInputDelimiter: this.printInputDelimiter
@@ -341,25 +348,105 @@ hello('New user');`,
         </div>
 
         <div class="mb-4">
-            <p class="mb-2 font-semibold text-sm">Formatting:</p>
-            <div class="flex space-x-4 items-center">
-                <label class="inline-flex items-center space-x-1">
-                    <input
-                            type="checkbox"
-                            x-model="prettyPrint"
-                            class="text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span class="text-sm">Pretty print</span>
-                </label>
+            <button
+                    @click="showFormatting = !showFormatting"
+                    class="flex items-center text-blue-600 mb-1 font-medium focus:outline-none"
+            >
+                <span x-text="showFormatting ? 'Hide additional settings' : 'Show additional settings'"></span>
+                <svg
+                        class="w-4 h-4 ml-1 transform transition-transform duration-200"
+                        :class="{'rotate-180': showFormatting}"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
 
-                <label class="inline-flex items-center space-x-1">
-                    <input
-                            type="checkbox"
-                            x-model="printInputDelimiter"
-                            class="text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span class="text-sm">Print input delimiter</span>
-                </label>
+            <div
+                    x-show="showFormatting"
+                    class="bg-gray-50 rounded-md mb-2 border border-gray-200 overflow-hidden"
+            >
+                <!-- Formatting section -->
+                <div class="p-3 border-b border-gray-200">
+                    <p class="mb-2 font-semibold text-sm">Formatting:</p>
+                    <div class="flex flex-wrap gap-x-4 gap-y-2">
+                        <label class="inline-flex items-center">
+                            <input
+                                    type="checkbox"
+                                    x-model="prettyPrint"
+                                    class="text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span class="text-sm ml-1">Pretty print</span>
+                        </label>
+
+                        <label class="inline-flex items-center">
+                            <input
+                                    type="checkbox"
+                                    x-model="printInputDelimiter"
+                                    class="text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span class="text-sm ml-1">Print input delimiter</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Language settings - responsive side by side section -->
+                <div class="p-3">
+                    <p class="mb-3 font-semibold text-sm">JavaScript Versions:</p>
+
+                    <div class="flex flex-wrap gap-4">
+                        <!-- LanguageIn -->
+                        <div class="flex-1 min-w-[250px]">
+                            <label for="languageIn" class="block text-sm font-medium text-gray-700 mb-1">Input language:</label>
+                            <select
+                                    id="languageIn"
+                                    x-model="languageIn"
+                                    class="form-select block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                            >
+                                <option value="ECMASCRIPT3">ECMASCRIPT3</option>
+                                <option value="ECMASCRIPT5">ECMASCRIPT5</option>
+                                <option value="ECMASCRIPT5_STRICT">ECMASCRIPT5_STRICT</option>
+                                <option value="ECMASCRIPT_2015">ECMASCRIPT_2015</option>
+                                <option value="ECMASCRIPT_2016">ECMASCRIPT_2016</option>
+                                <option value="ECMASCRIPT_2017">ECMASCRIPT_2017</option>
+                                <option value="ECMASCRIPT_2018">ECMASCRIPT_2018</option>
+                                <option value="ECMASCRIPT_2019">ECMASCRIPT_2019</option>
+                                <option value="ECMASCRIPT_2020">ECMASCRIPT_2020</option>
+                                <option value="ECMASCRIPT_2021">ECMASCRIPT_2021</option>
+                                <option value="ECMASCRIPT_NEXT">ECMASCRIPT_NEXT</option>
+                                <option value="STABLE">STABLE</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Input JavaScript code version</p>
+                        </div>
+
+                        <!-- LanguageOut -->
+                        <div class="flex-1 min-w-[250px]">
+                            <label for="languageOut" class="block text-sm font-medium text-gray-700 mb-1">Output language:</label>
+                            <select
+                                    id="languageOut"
+                                    x-model="languageOut"
+                                    class="form-select block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                            >
+                                <option value="ECMASCRIPT3">ECMASCRIPT3</option>
+                                <option value="ECMASCRIPT5">ECMASCRIPT5</option>
+                                <option value="ECMASCRIPT5_STRICT">ECMASCRIPT5_STRICT</option>
+                                <option value="ECMASCRIPT_2015">ECMASCRIPT_2015</option>
+                                <option value="ECMASCRIPT_2016">ECMASCRIPT_2016</option>
+                                <option value="ECMASCRIPT_2017">ECMASCRIPT_2017</option>
+                                <option value="ECMASCRIPT_2018">ECMASCRIPT_2018</option>
+                                <option value="ECMASCRIPT_2019">ECMASCRIPT_2019</option>
+                                <option value="ECMASCRIPT_2020">ECMASCRIPT_2020</option>
+                                <option value="ECMASCRIPT_2021">ECMASCRIPT_2021</option>
+                                <option value="ECMASCRIPT_NEXT">ECMASCRIPT_NEXT</option>
+                                <option value="STABLE">STABLE</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Generated JavaScript code version</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
