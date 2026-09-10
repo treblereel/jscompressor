@@ -19,9 +19,12 @@ package org.treblereel.javascript.compiler.downloader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -33,6 +36,8 @@ import org.treblereel.javascript.compiler.config.ServerConfig;
 
 @ApplicationScoped
 public class FileDownloader {
+
+    private static final Set<String> ALLOWED_SCHEMES = Set.of("http", "https");
 
     private final Set<String> buildin =
             new HashSet<>() {
@@ -86,35 +91,120 @@ public class FileDownloader {
     }
 
     public String downloadFileToTemp(String fileUrl) throws IOException {
-        URL url = new URL(fileUrl);
+        URI uri = validateExternalUri(fileUrl);
 
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
+        for (int redirectCount = 0; redirectCount <= serverConfig.downloadMaxRedirects(); redirectCount++) {
+            HttpURLConnection connection = openConnection(uri);
+            int responseCode = connection.getResponseCode();
 
-        if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-            long contentLength = connection.getContentLengthLong();
-            if (contentLength > serverConfig.downloadFileMaxSize()) {
-                throw new IOException(
-                        "File is too large to download: "
-                                + contentLength
-                                + " bytes (max: "
-                                + serverConfig.downloadFileMaxSize()
-                                + " bytes)");
+            if (isRedirect(responseCode)) {
+                String location = connection.getHeaderField("Location");
+                connection.disconnect();
+                if (location == null || location.isBlank()) {
+                    throw new IOException("Redirect response is missing Location header");
+                }
+                uri = validateExternalUri(uri.resolve(location).toString());
+                continue;
             }
 
-            try (InputStream inputStream = connection.getInputStream()) {
-                return IOUtils.toString(
-                        new LimitedInputStream(inputStream, serverConfig.downloadFileMaxSize()), StandardCharsets.UTF_8);
-            } catch (Exception e) {
-                throw new IOException(
-                        "Failed to load resource: "
-                                + fileUrl
-                                + (e.getMessage() != null ? " - " + e.getMessage() : ""));
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                long contentLength = connection.getContentLengthLong();
+                if (contentLength > serverConfig.downloadFileMaxSize()) {
+                    connection.disconnect();
+                    throw new IOException(
+                            "File is too large to download: "
+                                    + contentLength
+                                    + " bytes (max: "
+                                    + serverConfig.downloadFileMaxSize()
+                                    + " bytes)");
+                }
+
+                try (InputStream inputStream = connection.getInputStream()) {
+                    return IOUtils.toString(
+                            new LimitedInputStream(inputStream, serverConfig.downloadFileMaxSize()), StandardCharsets.UTF_8);
+                } catch (Exception e) {
+                    throw new IOException(
+                            "Failed to load resource: "
+                                    + fileUrl
+                                    + (e.getMessage() != null ? " - " + e.getMessage() : ""));
+                } finally {
+                    connection.disconnect();
+                }
             }
-        } else {
-            String msg = String.format("Failed to download file: %s, %s - %s", fileUrl, connection.getResponseCode(), connection.getResponseMessage());
+
+            String msg = String.format("Failed to download file: %s, %s - %s", fileUrl, responseCode, connection.getResponseMessage());
+            connection.disconnect();
             throw new IOException(msg);
         }
+
+        throw new IOException("Too many redirects while downloading file: " + fileUrl);
+    }
+
+    private HttpURLConnection openConnection(URI uri) throws IOException {
+        validateResolvedAddresses(uri);
+        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
+        connection.setInstanceFollowRedirects(false);
+        connection.setConnectTimeout(serverConfig.downloadConnectTimeoutMs());
+        connection.setReadTimeout(serverConfig.downloadReadTimeoutMs());
+        connection.setRequestMethod("GET");
+        return connection;
+    }
+
+    private URI validateExternalUri(String fileUrl) throws IOException {
+        URI uri;
+        try {
+            uri = new URI(fileUrl).normalize();
+        } catch (URISyntaxException e) {
+            throw new IOException("Invalid URL: " + fileUrl, e);
+        }
+
+        String scheme = uri.getScheme();
+        if (scheme == null || !ALLOWED_SCHEMES.contains(scheme.toLowerCase(Locale.ROOT))) {
+            throw new IOException("Unsupported URL scheme: " + scheme);
+        }
+        if (uri.getHost() == null || uri.getHost().isBlank()) {
+            throw new IOException("URL host is required");
+        }
+        if (uri.getUserInfo() != null) {
+            throw new IOException("URL user info is not allowed");
+        }
+
+        validateResolvedAddresses(uri);
+        return uri;
+    }
+
+    private void validateResolvedAddresses(URI uri) throws IOException {
+        InetAddress[] addresses = InetAddress.getAllByName(uri.getHost());
+        if (addresses.length == 0) {
+            throw new IOException("URL host cannot be resolved: " + uri.getHost());
+        }
+        for (InetAddress address : addresses) {
+            if (isBlockedAddress(address)) {
+                throw new IOException("URL host resolves to a blocked address: " + address.getHostAddress());
+            }
+        }
+    }
+
+    private boolean isRedirect(int responseCode) {
+        return responseCode == HttpURLConnection.HTTP_MOVED_PERM
+                || responseCode == HttpURLConnection.HTTP_MOVED_TEMP
+                || responseCode == HttpURLConnection.HTTP_SEE_OTHER
+                || responseCode == 307
+                || responseCode == 308;
+    }
+
+    private boolean isBlockedAddress(InetAddress address) {
+        byte[] bytes = address.getAddress();
+        return address.isAnyLocalAddress()
+                || address.isLoopbackAddress()
+                || address.isLinkLocalAddress()
+                || address.isSiteLocalAddress()
+                || address.isMulticastAddress()
+                || isUniqueLocalIpv6(bytes);
+    }
+
+    private boolean isUniqueLocalIpv6(byte[] bytes) {
+        return bytes.length == 16 && (bytes[0] & 0xfe) == 0xfc;
     }
 
     private String getFileNameFromUrl(String fileUrl) {

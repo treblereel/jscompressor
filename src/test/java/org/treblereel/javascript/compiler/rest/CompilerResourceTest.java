@@ -16,6 +16,7 @@
 
 package org.treblereel.javascript.compiler.rest;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +35,7 @@ import org.treblereel.javascript.compiler.domain.Formatting;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -159,6 +161,30 @@ public class CompilerResourceTest {
             .body("statistics.compiledSize", is(38))
             .body("statistics.originalSize", is(72))
             .body("warnings", hasSize(0));
+  }
+
+  @Test
+  public void testCompileRejectsPrivateExternalScriptUrl() {
+    CompileRequest compileRequest = new CompileRequest();
+    compileRequest.setPayload("function hello(name) {\n    alert('Hello, ' + name);\n}\nhello('New user');");
+    compileRequest.setCompilationLevel("Simple");
+    compileRequest.setWarningLevel("DEFAULT");
+    compileRequest.setOutputFileName("default.js");
+    compileRequest.setFormatting(new Formatting(false, false));
+    ExternalScripts externalScripts = new ExternalScripts();
+    externalScripts.setUrls(List.of("http://127.0.0.1/test.js"));
+    compileRequest.setExternalScripts(externalScripts);
+
+    String json = jsonb.toJson(compileRequest);
+
+    given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/compile")
+            .then()
+            .statusCode(400)
+            .body("error", containsString("blocked address"));
   }
 
 

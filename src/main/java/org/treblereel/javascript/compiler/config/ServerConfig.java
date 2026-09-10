@@ -31,6 +31,15 @@ public interface ServerConfig {
   @WithDefault("10")
   long downloadUrlsPreRequest();
 
+  @WithDefault("5000")
+  int downloadConnectTimeoutMs();
+
+  @WithDefault("10000")
+  int downloadReadTimeoutMs();
+
+  @WithDefault("5")
+  int downloadMaxRedirects();
+
   @WithDefault("cache")
   String cacheLocation();
 
