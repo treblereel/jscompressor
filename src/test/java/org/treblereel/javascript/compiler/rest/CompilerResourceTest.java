@@ -368,6 +368,28 @@ public class CompilerResourceTest {
   }
 
   @Test
+  public void testOpenApiYamlIsGeneratedFromAnnotations() {
+    String openApiYaml = given()
+            .when()
+            .get("/openapi.yaml")
+            .then()
+            .statusCode(200)
+            .extract()
+            .asString();
+
+    assertTrue(openApiYaml.contains("openapi: 3.0.3"));
+    assertTrue(openApiYaml.contains("title: JSCompressor API"));
+    assertTrue(openApiYaml.contains("/compile:"));
+    assertTrue(openApiYaml.contains("operationId: compile"));
+    assertTrue(openApiYaml.contains("operationId: read"));
+    assertTrue(openApiYaml.contains("ErrorResponse"));
+    assertTrue(openApiYaml.contains("\"400\""));
+    assertTrue(openApiYaml.contains("\"404\""));
+    assertTrue(openApiYaml.contains("\"429\""));
+    assertTrue(openApiYaml.contains("\"500\""));
+  }
+
+  @Test
   public void testBulkhead() throws InterruptedException {
     CompileRequest compileRequest = new CompileRequest();
     compileRequest.setPayload("function hello(name) {\n    alert('Hello, ' + name);\n}\nhello('New user');");

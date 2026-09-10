@@ -32,10 +32,12 @@ import org.treblereel.javascript.compiler.validation.ValidFileName;
         description = "CompileRequest is a request to compile JavaScript code.")
 public class CompileRequest {
 
-  @Schema(description = "Compilation level. Possible values: WHITESPACE, SIMPLE, ADVANCED.", enumeration = "WHITESPACE, SIMPLE, ADVANCED")
+  @Schema(description = "Compilation level. Possible values: WHITESPACE, SIMPLE, ADVANCED.",
+          enumeration = {"WHITESPACE", "SIMPLE", "ADVANCED", "Whitespace only", "Simple", "Advanced"})
   @Pattern(regexp = "WHITESPACE|SIMPLE|ADVANCED|Whitespace only|Simple|Advanced")
   private String compilationLevel;
-  @Schema(description = "Warning level. Possible values: QUIET, DEFAULT, VERBOSE.", enumeration = "QUIET, DEFAULT, VERBOSE")
+  @Schema(description = "Warning level. Possible values: QUIET, DEFAULT, VERBOSE.",
+          enumeration = {"QUIET", "DEFAULT", "VERBOSE"})
   @Pattern(regexp = "QUIET|DEFAULT|VERBOSE")
   private String warningLevel;
 

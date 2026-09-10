@@ -56,6 +56,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.servers.Server;
 import org.jboss.logging.Logger;
 import org.treblereel.javascript.compiler.cache.FileCache;
@@ -70,9 +71,9 @@ import org.treblereel.javascript.compiler.externs.ExternsProcessor;
 @Path("/compile")
 @OpenAPIDefinition(
         info = @Info(
-                title = "JavaScript Compiler API",
-                version = "0.5",
-                description = "API for compiling JavaScript code using Google Closure Compiler"
+                title = "JSCompressor API",
+                version = "0.1",
+                description = "JSCompressor API"
         ),
         servers = @Server(url = "https://jscompressor.treblereel.dev/", description = "Production server")
 )
@@ -105,7 +106,7 @@ public class CompilerResource {
   @Operation(
           summary = "Compile JavaScript code",
           description = "Compiles JavaScript code using Google Closure Compiler",
-          operationId = "compileJavaScript"
+          operationId = "compile"
   )
   @RequestBody(
           content  = @Content(
@@ -113,13 +114,41 @@ public class CompilerResource {
                   schema    = @Schema(implementation = CompileRequest.class)
           )
   )
-  @APIResponse(
-          responseCode = "200",
-          description  = "OK",
-          content      = @Content(
-                  mediaType = "application/json",
-                  schema    = @Schema(implementation = CompileResponse.class)
-          )
+  @APIResponses(
+          value = {
+              @APIResponse(
+                      responseCode = "200",
+                      description  = "OK",
+                      content      = @Content(
+                              mediaType = "application/json",
+                              schema    = @Schema(implementation = CompileResponse.class)
+                      )
+              ),
+              @APIResponse(
+                      responseCode = "400",
+                      description  = "Invalid compile request",
+                      content      = @Content(
+                              mediaType = "application/json",
+                              schema    = @Schema(implementation = ErrorResponse.class)
+                      )
+              ),
+              @APIResponse(
+                      responseCode = "429",
+                      description  = "Too many requests",
+                      content      = @Content(
+                              mediaType = "application/json",
+                              schema    = @Schema(implementation = ErrorResponse.class)
+                      )
+              ),
+              @APIResponse(
+                      responseCode = "500",
+                      description  = "Internal server error",
+                      content      = @Content(
+                              mediaType = "application/json",
+                              schema    = @Schema(implementation = ErrorResponse.class)
+                      )
+              )
+          }
   )
   public Response compile(@Valid CompileRequest request) {
     logger.info("received request from " + context.request().remoteAddress().host());
@@ -263,7 +292,7 @@ public class CompilerResource {
   @Operation(
           summary = "Fetch compiled code",
           description = "Reads compiled code from cache using the provided hash",
-          operationId = "readCompiledCode"
+          operationId = "read"
   )
   @Parameter(
           name        = "hash",
@@ -272,13 +301,41 @@ public class CompilerResource {
           in          = ParameterIn.PATH,
           schema      = @Schema(type = SchemaType.STRING)
   )
-  @APIResponse(
-          responseCode = "200",
-          description  = "Javascript file (binary)",
-          content      = @Content(
-                  mediaType = "application/octet-stream",
-                  schema    = @Schema(type = SchemaType.STRING, format = "binary")
-          )
+  @APIResponses(
+          value = {
+              @APIResponse(
+                      responseCode = "200",
+                      description  = "Javascript file (binary)",
+                      content      = @Content(
+                              mediaType = "application/octet-stream",
+                              schema    = @Schema(type = SchemaType.STRING, format = "binary")
+                      )
+              ),
+              @APIResponse(
+                      responseCode = "404",
+                      description  = "Compiled code was not found",
+                      content      = @Content(
+                              mediaType = "application/json",
+                              schema    = @Schema(implementation = ErrorResponse.class)
+                      )
+              ),
+              @APIResponse(
+                      responseCode = "429",
+                      description  = "Too many requests",
+                      content      = @Content(
+                              mediaType = "application/json",
+                              schema    = @Schema(implementation = ErrorResponse.class)
+                      )
+              ),
+              @APIResponse(
+                      responseCode = "500",
+                      description  = "Internal server error",
+                      content      = @Content(
+                              mediaType = "application/json",
+                              schema    = @Schema(implementation = ErrorResponse.class)
+                      )
+              )
+          }
   )
   public Response read(@PathParam("hash") String hash) {
     byte[] bytes = new byte[0];
