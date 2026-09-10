@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.inject.Inject;
 import jakarta.json.bind.Jsonb;
+import jakarta.validation.Validator;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -45,6 +46,9 @@ public class CompilerResourceTest {
 
   @Inject
   Jsonb jsonb;
+
+  @Inject
+  Validator validator;
 
   @Test
   public void testCompileSuccessWhitespaceOnly() {
@@ -187,6 +191,152 @@ public class CompilerResourceTest {
             .body("error", containsString("blocked address"));
   }
 
+  @Test
+  public void testValidationAcceptsDocumentedCompilationLevels() {
+    assertTrue(validator.validate(createCompileRequest("WHITESPACE")).isEmpty());
+    assertTrue(validator.validate(createCompileRequest("SIMPLE")).isEmpty());
+    assertTrue(validator.validate(createCompileRequest("ADVANCED")).isEmpty());
+  }
+
+  @Test
+  public void testValidationAcceptsUiCompilationLevels() {
+    assertTrue(validator.validate(createCompileRequest("Whitespace only")).isEmpty());
+    assertTrue(validator.validate(createCompileRequest("Simple")).isEmpty());
+    assertTrue(validator.validate(createCompileRequest("Advanced")).isEmpty());
+  }
+
+  @Test
+  public void testValidationAcceptsOptionalDefaults() {
+    CompileRequest compileRequest = createCompileRequest("Simple");
+    compileRequest.setCompilationLevel(null);
+    compileRequest.setWarningLevel(null);
+    compileRequest.setFormatting(null);
+    compileRequest.setExternalScripts(null);
+
+    assertTrue(validator.validate(compileRequest).isEmpty());
+  }
+
+  @Test
+  public void testCompileUsesDefaultCompilationLevelWhenMissing() {
+    given()
+            .contentType(ContentType.JSON)
+            .body("""
+            {
+              "payload": "function hello() {}",
+              "warningLevel": "DEFAULT",
+              "outputFileName": "default.js",
+              "externalScripts": {"urls": []}
+            }
+            """)
+            .when()
+            .post("/compile")
+            .then()
+            .statusCode(200)
+            .body("compiledCode", notNullValue());
+  }
+
+  @Test
+  public void testCompileUsesDefaultWarningLevelWhenMissing() {
+    given()
+            .contentType(ContentType.JSON)
+            .body("""
+            {
+              "payload": "function hello() {}",
+              "compilationLevel": "Simple",
+              "outputFileName": "default.js",
+              "externalScripts": {"urls": []}
+            }
+            """)
+            .when()
+            .post("/compile")
+            .then()
+            .statusCode(200)
+            .body("compiledCode", notNullValue());
+  }
+
+  @Test
+  public void testValidationAcceptsNullExternalScriptUrls() {
+    CompileRequest compileRequest = createCompileRequest("Simple");
+    ExternalScripts externalScripts = new ExternalScripts();
+    externalScripts.setUrls(null);
+    compileRequest.setExternalScripts(externalScripts);
+
+    assertTrue(validator.validate(compileRequest).isEmpty());
+  }
+
+  @Test
+  public void testCompileRejectsMissingPayload() {
+    assertCompileBadRequest(
+            """
+            {
+              "compilationLevel": "Simple",
+              "warningLevel": "DEFAULT",
+              "outputFileName": "default.js",
+              "externalScripts": {"urls": []}
+            }
+            """);
+  }
+
+  @Test
+  public void testCompileRejectsBlankExternalScriptUrl() {
+    assertCompileBadRequest(
+            """
+            {
+              "payload": "function hello() {}",
+              "compilationLevel": "Simple",
+              "warningLevel": "DEFAULT",
+              "outputFileName": "default.js",
+              "externalScripts": {"urls": [" "]}
+            }
+            """);
+  }
+
+  @Test
+  public void testCompileRejectsInvalidCompilationLevel() {
+    assertCompileBadRequest(
+            """
+            {
+              "payload": "function hello() {}",
+              "compilationLevel": "MINIFY",
+              "warningLevel": "DEFAULT",
+              "outputFileName": "default.js",
+              "externalScripts": {"urls": []}
+            }
+            """);
+  }
+
+  @Test
+  public void testCompileRejectsInvalidWarningLevel() {
+    assertCompileBadRequest(
+            """
+            {
+              "payload": "function hello() {}",
+              "compilationLevel": "Simple",
+              "warningLevel": "LOUD",
+              "outputFileName": "default.js",
+              "externalScripts": {"urls": []}
+            }
+            """);
+  }
+
+  @Test
+  public void testCompileRejectsInvalidLanguageLevel() {
+    assertCompileBadRequest(
+            """
+            {
+              "payload": "function hello() {}",
+              "compilationLevel": "Simple",
+              "warningLevel": "DEFAULT",
+              "outputFileName": "default.js",
+              "language": {
+                "languageIn": "ECMASCRIPT_2021",
+                "languageOut": "INVALID"
+              },
+              "externalScripts": {"urls": []}
+            }
+            """);
+  }
+
 
   @Test
   public void testBulkhead() throws InterruptedException {
@@ -287,6 +437,27 @@ public class CompilerResourceTest {
             .body("statistics.compiledSize", is(13))
             .body("statistics.originalSize", is(2308890))
             .body("warnings", hasSize(0));
+  }
+
+  private void assertCompileBadRequest(String json) {
+    given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/compile")
+            .then()
+            .statusCode(400);
+  }
+
+  private CompileRequest createCompileRequest(String compilationLevel) {
+    CompileRequest compileRequest = new CompileRequest();
+    compileRequest.setPayload("function hello() {}");
+    compileRequest.setCompilationLevel(compilationLevel);
+    compileRequest.setWarningLevel("DEFAULT");
+    compileRequest.setOutputFileName("default.js");
+    compileRequest.setFormatting(new Formatting(false, false));
+    compileRequest.setExternalScripts(new ExternalScripts());
+    return compileRequest;
   }
 
 }

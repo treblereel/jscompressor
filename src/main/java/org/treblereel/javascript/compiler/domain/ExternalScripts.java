@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import jakarta.validation.constraints.NotBlank;
+
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.treblereel.javascript.compiler.validation.MaxExternalUrls;
@@ -35,7 +37,7 @@ public class ExternalScripts {
           description = "List of external scripts to be included in the compilation.",
           type = SchemaType.ARRAY,
           implementation = String.class)
-  private List<String> urls;
+  private List<@NotBlank String> urls;
 
   public ExternalScripts() {
     urls = new ArrayList<>();

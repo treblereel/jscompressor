@@ -20,6 +20,7 @@ import java.util.Objects;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -32,8 +33,10 @@ import org.treblereel.javascript.compiler.validation.ValidFileName;
 public class CompileRequest {
 
   @Schema(description = "Compilation level. Possible values: WHITESPACE, SIMPLE, ADVANCED.", enumeration = "WHITESPACE, SIMPLE, ADVANCED")
+  @Pattern(regexp = "WHITESPACE|SIMPLE|ADVANCED|Whitespace only|Simple|Advanced")
   private String compilationLevel;
   @Schema(description = "Warning level. Possible values: QUIET, DEFAULT, VERBOSE.", enumeration = "QUIET, DEFAULT, VERBOSE")
+  @Pattern(regexp = "QUIET|DEFAULT|VERBOSE")
   private String warningLevel;
 
   @NotNull
@@ -41,10 +44,12 @@ public class CompileRequest {
   @Schema(description = "Output file name. Must be a valid file name.")
   private String outputFileName;
 
+  @Valid
   @Schema(description = "Language input and output",
           implementation = LanguageInOut.class)
   private LanguageInOut language;
 
+  @NotNull
   @MaxPayloadSize
   @Schema(description = "JavaScript code to be compiled.",
           type = SchemaType.STRING)

@@ -129,13 +129,16 @@ public class CompilerResource {
     Compiler compiler = new Compiler();
     CompilerOptions options = new CompilerOptions();
 
-    switch (request.getCompilationLevel()) {
+    switch (request.getCompilationLevel() == null ? "Simple" : request.getCompilationLevel()) {
+      case "SIMPLE":
       case "Simple":
         CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
         break;
+      case "ADVANCED":
       case "Advanced":
         CompilationLevel.ADVANCED_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
         break;
+      case "WHITESPACE":
       case "Whitespace only":
         CompilationLevel.WHITESPACE_ONLY.setOptionsForCompilationLevel(options);
         break;
@@ -143,7 +146,7 @@ public class CompilerResource {
         CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
     }
 
-    switch (request.getWarningLevel()) {
+    switch (request.getWarningLevel() == null ? "DEFAULT" : request.getWarningLevel()) {
       case "QUIET":
         WarningLevel.QUIET.setOptionsForWarningLevel(options);
         break;
@@ -157,8 +160,12 @@ public class CompilerResource {
 
     List<SourceFile> sources = new ArrayList<>();
     long externalSourceSize = 0;
+    List<String> externalScriptUrls = List.of();
+    if (request.getExternalScripts() != null && request.getExternalScripts().getUrls() != null) {
+      externalScriptUrls = request.getExternalScripts().getUrls();
+    }
 
-    for (String url : request.getExternalScripts().getUrls()) {
+    for (String url : externalScriptUrls) {
       try {
         SourceFile file = fileDownloader.downloadFile(url);
         sources.add(file);
