@@ -16,10 +16,9 @@
 
 package org.treblereel.javascript.compiler.externs;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,35 +32,43 @@ import com.google.javascript.jscomp.CompilerOptions;
 import com.google.javascript.jscomp.DefaultExterns;
 import com.google.javascript.jscomp.SourceFile;
 import com.google.javascript.jscomp.jarjar.com.google.common.base.Ascii;
-import com.google.javascript.jscomp.jarjar.com.google.common.io.ByteStreams;
 
 @ApplicationScoped
 public class ExternsProcessor {
 
-  private final List<SourceFile> externs = new ArrayList<>();
+  private Map<String, String> browserExterns = Map.of();
 
   public List<SourceFile> getExterns() {
-    return externs;
+    return createExterns(CompilerOptions.Environment.BROWSER, browserExterns);
   }
 
   @PostConstruct
   public void init() {
     try {
-      externs.addAll(getBuiltinExterns(CompilerOptions.Environment.BROWSER));
+      browserExterns = readBuiltinExterns(CompilerOptions.Environment.BROWSER);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
   public List<SourceFile> getBuiltinExterns(CompilerOptions.Environment env) throws IOException {
+    return createExterns(env, readBuiltinExterns(env));
+  }
+
+  private Map<String, String> readBuiltinExterns(CompilerOptions.Environment env) throws IOException {
     ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
     try (InputStream input =
         classLoader.getResourceAsStream("META-INF/resources/buildin/externs.zip")) {
-      assert input != null;
+      if (input == null) {
+        throw new IOException("Resource not found: META-INF/resources/buildin/externs.zip");
+      }
       ZipInputStream zip = new ZipInputStream(input);
       String envPrefix = Ascii.toLowerCase(env.toString()) + "/";
-      Map<String, SourceFile> mapFromExternsZip = new HashMap<>();
+      Map<String, String> externs = new HashMap<>();
       for (ZipEntry entry; (entry = zip.getNextEntry()) != null; ) {
+        if (entry.isDirectory()) {
+          continue;
+        }
         String filename = entry.getName();
 
         if (filename.contains("/")) {
@@ -71,16 +78,22 @@ public class ExternsProcessor {
           filename = filename.substring(envPrefix.length());
         }
 
-        BufferedInputStream entryStream =
-            new BufferedInputStream(ByteStreams.limit(zip, entry.getSize()));
-        mapFromExternsZip.put(
-            filename,
-            SourceFile.builder()
-                .withPath("externs.zip//" + filename)
-                .withContent(entryStream)
-                .build());
+        externs.put(filename, new String(zip.readAllBytes(), StandardCharsets.UTF_8));
       }
-      return DefaultExterns.prepareExterns(env, mapFromExternsZip);
+      return Map.copyOf(externs);
     }
+  }
+
+  private List<SourceFile> createExterns(CompilerOptions.Environment env, Map<String, String> externs) {
+    Map<String, SourceFile> mapFromExternsZip = new HashMap<>();
+    externs.forEach(
+        (filename, content) ->
+            mapFromExternsZip.put(
+                filename,
+                SourceFile.builder()
+                    .withPath("externs.zip//" + filename)
+                    .withContent(content)
+                    .build()));
+    return DefaultExterns.prepareExterns(env, mapFromExternsZip);
   }
 }

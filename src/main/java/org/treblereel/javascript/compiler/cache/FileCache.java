@@ -17,9 +17,13 @@
 package org.treblereel.javascript.compiler.cache;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Comparator;
 
@@ -37,41 +41,53 @@ public class FileCache {
 
   @PostConstruct
   public void init() {
-    Path path = Paths.get(serverConfig.cacheLocation());
-    if (!path.toFile().exists()) {
-      throw new RuntimeException("Cache location does not exist: " + serverConfig.cacheLocation());
+    try {
+      Files.createDirectories(cacheDirectory());
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to create cache location: " + serverConfig.cacheLocation(), e);
     }
-    if (path.resolve("cache").toFile().exists()) {
-      path.resolve("cache").toFile().mkdirs();
+    if (!Files.isDirectory(cacheDirectory())) {
+      throw new RuntimeException("Cache location is not a directory: " + serverConfig.cacheLocation());
     }
   }
 
-  public void put(String filename, byte[] content) throws Exception {
-    if (checkFileExists(filename)) {
+  public synchronized void put(String filename, byte[] content) throws Exception {
+    Path path = resolveCachePath(filename);
+    if (Files.exists(path)) {
       return;
+    }
+    if (content.length > serverConfig.cacheMaxSize()) {
+      throw new Exception("File is larger than cache max size");
     }
 
     evict(content);
-    writeFileToCache(filename, content);
+    writeFileToCache(path, content);
   }
 
-  public byte[] get(String filename) throws Exception {
-    Path path = Paths.get(serverConfig.cacheLocation(), filename);
-    if (!path.toFile().exists()) {
+  public synchronized byte[] get(String filename) throws Exception {
+    Path path = resolveCachePath(filename);
+    if (!Files.exists(path)) {
       return null;
     }
-    return Files.readAllBytes(path);
+    try {
+      return Files.readAllBytes(path);
+    } catch (NoSuchFileException e) {
+      return null;
+    }
   }
 
-  private boolean checkFileExists(String filename) {
-    Path path = Paths.get(serverConfig.cacheLocation(), filename);
-    return path.toFile().exists();
-  }
-
-  private void writeFileToCache(String filename, byte[] content) throws Exception {
-    Path path = Paths.get(serverConfig.cacheLocation(), filename);
-    path.toFile().createNewFile();
-    Files.write(path, content);
+  private void writeFileToCache(Path path, byte[] content) throws Exception {
+    Path tempFile = Files.createTempFile(cacheDirectory(), ".cache-", ".tmp");
+    try {
+      Files.write(tempFile, content);
+      try {
+        Files.move(tempFile, path, StandardCopyOption.ATOMIC_MOVE);
+      } catch (AtomicMoveNotSupportedException e) {
+        Files.move(tempFile, path);
+      }
+    } finally {
+      Files.deleteIfExists(tempFile);
+    }
   }
 
   private void evict(byte[] content) throws Exception {
@@ -79,7 +95,7 @@ public class FileCache {
       try {
         File file = findOldestFile();
         if (file != null) {
-          file.delete();
+          Files.deleteIfExists(file.toPath());
         } else {
           break;
         }
@@ -90,20 +106,21 @@ public class FileCache {
   }
 
   private boolean checkSpace(byte[] content) throws Exception {
-    Path path = Paths.get(serverConfig.cacheLocation());
-
-    if (!path.toFile().exists()) {
+    Path path = cacheDirectory();
+    if (!Files.exists(path)) {
       throw new Exception("Cache location does not exist: " + serverConfig.cacheLocation());
     }
 
-    File directory = Paths.get(serverConfig.cacheLocation()).toFile();
-    long totalSize =
-        Arrays.stream(directory.listFiles()).filter(File::isFile).mapToLong(File::length).sum();
+    File[] files = path.toFile().listFiles();
+    if (files == null) {
+      throw new Exception("Cache location is not readable: " + serverConfig.cacheLocation());
+    }
+    long totalSize = Arrays.stream(files).filter(File::isFile).mapToLong(File::length).sum();
     return totalSize + content.length <= serverConfig.cacheMaxSize();
   }
 
   private File findOldestFile() throws Exception {
-    File directory = Paths.get(serverConfig.cacheLocation()).toFile();
+    File directory = cacheDirectory().toFile();
 
     if (!directory.isDirectory()) {
       throw new Exception("Cache location is not a directory: " + serverConfig.cacheLocation());
@@ -119,5 +136,29 @@ public class FileCache {
         .filter(File::isFile)
         .min(Comparator.comparingLong(File::lastModified))
         .orElse(null);
+  }
+
+  private Path resolveCachePath(String filename) throws Exception {
+    if (filename == null || filename.isBlank()) {
+      throw new Exception("Invalid cache filename");
+    }
+
+    Path filenamePath = Paths.get(filename);
+    if (filenamePath.isAbsolute()) {
+      throw new Exception("Invalid cache filename");
+    }
+    if (filenamePath.getNameCount() != 1) {
+      throw new Exception("Invalid cache filename");
+    }
+
+    Path path = cacheDirectory().resolve(filenamePath).normalize();
+    if (!path.startsWith(cacheDirectory())) {
+      throw new Exception("Invalid cache filename");
+    }
+    return path;
+  }
+
+  private Path cacheDirectory() {
+    return Paths.get(serverConfig.cacheLocation()).toAbsolutePath().normalize();
   }
 }

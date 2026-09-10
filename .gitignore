@@ -24,4 +24,4 @@ replay_pid*
 
 .idea/
 target/
-cache/
+/cache/

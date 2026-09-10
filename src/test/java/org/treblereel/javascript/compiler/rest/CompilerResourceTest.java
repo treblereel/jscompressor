@@ -39,6 +39,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
@@ -356,6 +357,8 @@ public class CompilerResourceTest {
     CountDownLatch latch = new CountDownLatch(totalRequests);
     AtomicInteger successCount = new AtomicInteger();
     AtomicInteger bulkheadRejectedCount = new AtomicInteger();
+    AtomicInteger unexpectedCount = new AtomicInteger();
+    AtomicInteger exceptionCount = new AtomicInteger();
 
     for (int i = 0; i < totalRequests; i++) {
       executor.submit(() -> {
@@ -375,10 +378,11 @@ public class CompilerResourceTest {
           } else if (statusCode == 429) {
             bulkheadRejectedCount.incrementAndGet();
           } else {
+            unexpectedCount.incrementAndGet();
             System.out.println("Unexpected status code: " + statusCode);
           }
         } catch (Exception e) {
-          // ignore
+          exceptionCount.incrementAndGet();
         } finally {
           latch.countDown();
         }
@@ -390,6 +394,8 @@ public class CompilerResourceTest {
 
     assertTrue(successCount.get() <= 10, "No more than 10 requests should be accepted");
     assertTrue(bulkheadRejectedCount.get() >= 5, "No less than 5 requests should be rejected");
+    assertEquals(0, unexpectedCount.get(), "No unexpected status codes should be returned");
+    assertEquals(0, exceptionCount.get(), "No requests should fail with exceptions");
   }
 
   // export MAX_DOWNLOAD_FILE_SIZE=20971520 before test
