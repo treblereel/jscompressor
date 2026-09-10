@@ -23,10 +23,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
 import org.treblereel.javascript.compiler.config.ServerConfig;
+import org.treblereel.javascript.compiler.domain.ErrorResponse;
 
 @Provider
 @ApplicationScoped
@@ -45,14 +47,22 @@ public class RequestSizeFilter implements ContainerRequestFilter {
         if (contentLength > config.downloadFileMaxSize()) {
           requestContext.abortWith(
                   Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
-                          .entity("Request size exceeds the maximum limit of " + config.downloadFileMaxSize() + " bytes")
+                          .entity(new ErrorResponse(
+                              Response.Status.REQUEST_ENTITY_TOO_LARGE.getStatusCode(),
+                              "Request size exceeds the maximum limit of "
+                                  + config.downloadFileMaxSize()
+                                  + " bytes"))
+                          .type(MediaType.APPLICATION_JSON)
                           .build());
           return;
         }
       } catch (NumberFormatException e) {
         requestContext.abortWith(
                 Response.status(Response.Status.BAD_REQUEST)
-                        .entity("Invalid Content-Length header.")
+                        .entity(new ErrorResponse(
+                            Response.Status.BAD_REQUEST.getStatusCode(),
+                            "Invalid Content-Length header."))
+                        .type(MediaType.APPLICATION_JSON)
                         .build());
       }
     }
@@ -62,7 +72,12 @@ public class RequestSizeFilter implements ContainerRequestFilter {
       if (entity.length > config.downloadFileMaxSize()) {
         requestContext.abortWith(
                 Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
-                        .entity("Request size exceeds the maximum limit of " + config.downloadFileMaxSize() + " bytes")
+                        .entity(new ErrorResponse(
+                            Response.Status.REQUEST_ENTITY_TOO_LARGE.getStatusCode(),
+                            "Request size exceeds the maximum limit of "
+                                + config.downloadFileMaxSize()
+                                + " bytes"))
+                        .type(MediaType.APPLICATION_JSON)
                         .build());
       } else {
         requestContext.setEntityStream(new ByteArrayInputStream(entity));

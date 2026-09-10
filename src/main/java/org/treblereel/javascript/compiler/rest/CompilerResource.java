@@ -21,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
@@ -63,6 +62,7 @@ import org.treblereel.javascript.compiler.cache.FileCache;
 import org.treblereel.javascript.compiler.config.ServerConfig;
 import org.treblereel.javascript.compiler.domain.CompileRequest;
 import org.treblereel.javascript.compiler.domain.CompileResponse;
+import org.treblereel.javascript.compiler.domain.ErrorResponse;
 import org.treblereel.javascript.compiler.domain.Statistics;
 import org.treblereel.javascript.compiler.downloader.FileDownloader;
 import org.treblereel.javascript.compiler.externs.ExternsProcessor;
@@ -171,9 +171,10 @@ public class CompilerResource {
         sources.add(file);
         externalSourceSize += file.getCode().length();
       } catch (IOException e) {
-        String msg = String.format("Failed to download file: %s, %s", url, e.getMessage());
         return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", "Failed to download file: " + e.getMessage()))
+            .entity(new ErrorResponse(
+                Response.Status.BAD_REQUEST.getStatusCode(),
+                "Failed to download file: " + e.getMessage()))
             .type(MediaType.APPLICATION_JSON)
             .build();
       }
@@ -218,7 +219,9 @@ public class CompilerResource {
         cache.put(hash, compiler.toSource().getBytes(StandardCharsets.UTF_8));
       } catch (Exception e) {
         return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", "Failed to cache compiled code: " + e.getMessage()))
+            .entity(new ErrorResponse(
+                Response.Status.BAD_REQUEST.getStatusCode(),
+                "Failed to cache compiled code: " + e.getMessage()))
             .type(MediaType.APPLICATION_JSON)
             .build();
       }
@@ -283,12 +286,18 @@ public class CompilerResource {
       bytes = cache.get(hash);
     } catch (Exception e) {
       return Response.status(Response.Status.NOT_FOUND)
-          .entity("No compiled code found for hash " + hash)
+          .entity(new ErrorResponse(
+              Response.Status.NOT_FOUND.getStatusCode(),
+              "No compiled code found for hash " + hash))
+          .type(MediaType.APPLICATION_JSON)
           .build();
     }
     if (bytes == null) {
       return Response.status(Response.Status.NOT_FOUND)
-          .entity("No compiled code found for hash " + hash)
+          .entity(new ErrorResponse(
+              Response.Status.NOT_FOUND.getStatusCode(),
+              "No compiled code found for hash " + hash))
+          .type(MediaType.APPLICATION_JSON)
           .build();
     }
     return Response.ok(bytes)

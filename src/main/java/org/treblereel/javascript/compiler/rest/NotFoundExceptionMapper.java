@@ -16,23 +16,22 @@
 
 package org.treblereel.javascript.compiler.rest;
 
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 
-import org.eclipse.microprofile.faulttolerance.exceptions.BulkheadException;
 import org.treblereel.javascript.compiler.domain.ErrorResponse;
 
 @Provider
-public class BulkheadExceptionMapper implements ExceptionMapper<BulkheadException> {
+public class NotFoundExceptionMapper implements ExceptionMapper<NotFoundException> {
 
   @Override
-  public Response toResponse(BulkheadException exception) {
-    return Response.status(Response.Status.TOO_MANY_REQUESTS)
-            .entity(new ErrorResponse(
-                Response.Status.TOO_MANY_REQUESTS.getStatusCode(),
-                "Too many requests. Please try again later."))
-            .type(jakarta.ws.rs.core.MediaType.APPLICATION_JSON)
-            .build();
+  public Response toResponse(NotFoundException exception) {
+    return Response.status(Response.Status.NOT_FOUND)
+        .entity(new ErrorResponse(Response.Status.NOT_FOUND.getStatusCode(), "Resource not found"))
+        .type(MediaType.APPLICATION_JSON)
+        .build();
   }
 }

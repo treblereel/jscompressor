@@ -16,23 +16,22 @@
 
 package org.treblereel.javascript.compiler.rest;
 
+import jakarta.validation.ConstraintViolationException;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 
-import org.eclipse.microprofile.faulttolerance.exceptions.BulkheadException;
 import org.treblereel.javascript.compiler.domain.ErrorResponse;
 
 @Provider
-public class BulkheadExceptionMapper implements ExceptionMapper<BulkheadException> {
+public class ConstraintViolationExceptionMapper implements ExceptionMapper<ConstraintViolationException> {
 
   @Override
-  public Response toResponse(BulkheadException exception) {
-    return Response.status(Response.Status.TOO_MANY_REQUESTS)
-            .entity(new ErrorResponse(
-                Response.Status.TOO_MANY_REQUESTS.getStatusCode(),
-                "Too many requests. Please try again later."))
-            .type(jakarta.ws.rs.core.MediaType.APPLICATION_JSON)
-            .build();
+  public Response toResponse(ConstraintViolationException exception) {
+    return Response.status(Response.Status.BAD_REQUEST)
+        .entity(new ErrorResponse(Response.Status.BAD_REQUEST.getStatusCode(), "Invalid request"))
+        .type(MediaType.APPLICATION_JSON)
+        .build();
   }
 }

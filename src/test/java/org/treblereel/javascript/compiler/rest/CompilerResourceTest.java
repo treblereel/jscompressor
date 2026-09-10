@@ -39,6 +39,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -189,6 +190,8 @@ public class CompilerResourceTest {
             .post("/compile")
             .then()
             .statusCode(400)
+            .contentType(ContentType.JSON)
+            .body("status", is(400))
             .body("error", containsString("blocked address"));
   }
 
@@ -338,6 +341,31 @@ public class CompilerResourceTest {
             """);
   }
 
+  @Test
+  public void testReadMissingCacheEntryReturnsJsonNotFound() {
+    given()
+            .when()
+            .get("/compile/missing")
+            .then()
+            .statusCode(404)
+            .contentType(ContentType.JSON)
+            .body("status", is(404))
+            .body("error", containsString("No compiled code found"))
+            .body("stack", nullValue());
+  }
+
+  @Test
+  public void testUnknownRouteReturnsJsonNotFound() {
+    given()
+            .when()
+            .get("/missing-route")
+            .then()
+            .statusCode(404)
+            .contentType(ContentType.JSON)
+            .body("status", is(404))
+            .body("error", is("Resource not found"))
+            .body("stack", nullValue());
+  }
 
   @Test
   public void testBulkhead() throws InterruptedException {
@@ -452,7 +480,11 @@ public class CompilerResourceTest {
             .when()
             .post("/compile")
             .then()
-            .statusCode(400);
+            .statusCode(400)
+            .contentType(ContentType.JSON)
+            .body("status", is(400))
+            .body("error", notNullValue())
+            .body("stack", nullValue());
   }
 
   private CompileRequest createCompileRequest(String compilationLevel) {
