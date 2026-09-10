@@ -21,14 +21,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CompileResponse"
+        "400":
+          description: "Invalid compile request"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: "Internal server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /compile/{hash}:
     get:
-      summary: "GET compile/{hash}"
+      summary: "Fetch compiled code"
       operationId: "read"
       parameters:
         - name: "hash"
           in: "path"
+          description: "Hash-code of the compiled JavaScript file"
           required: true
           schema:
             type: "string"
@@ -40,15 +53,61 @@ paths:
               schema:
                 type: "string"
                 format: "binary"
+        "404":
+          description: "Compiled code was not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: "Internal server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
     LanguageInOut:
-      type: string
+      type: "object"
       description: "Language input and output"
+      properties:
+        languageIn:
+          type: "string"
+          description: "Input JavaScript language version"
+          enum:
+            - "ECMASCRIPT3"
+            - "ECMASCRIPT5"
+            - "ECMASCRIPT5_STRICT"
+            - "ECMASCRIPT_2015"
+            - "ECMASCRIPT_2016"
+            - "ECMASCRIPT_2017"
+            - "ECMASCRIPT_2018"
+            - "ECMASCRIPT_2019"
+            - "ECMASCRIPT_2020"
+            - "ECMASCRIPT_2021"
+            - "ECMASCRIPT_NEXT"
+            - "STABLE"
+        languageOut:
+          type: "string"
+          description: "Output JavaScript language version"
+          enum:
+            - "ECMASCRIPT3"
+            - "ECMASCRIPT5"
+            - "ECMASCRIPT5_STRICT"
+            - "ECMASCRIPT_2015"
+            - "ECMASCRIPT_2016"
+            - "ECMASCRIPT_2017"
+            - "ECMASCRIPT_2018"
+            - "ECMASCRIPT_2019"
+            - "ECMASCRIPT_2020"
+            - "ECMASCRIPT_2021"
+            - "ECMASCRIPT_NEXT"
+            - "STABLE"
 
     Formatting:
       type: "object"
+      description: "Formatting options"
       properties:
         prettyPrint:
           type: "boolean"
@@ -57,6 +116,7 @@ components:
 
     ExternalScripts:
       type: "object"
+      description: "External scripts to be included in the compilation"
       properties:
         urls:
           type: "array"
@@ -65,27 +125,35 @@ components:
 
     Statistics:
       type: "object"
+      description: "Compilation statistics"
       properties:
         originalSize:
           type: "integer"
           format: "int64"
+          description: "Size of the original JavaScript code in bytes"
         compiledSize:
           type: "integer"
           format: "int64"
+          description: "Size of the compiled JavaScript code in bytes"
 
     CompileResponse:
       type: "object"
+      description: "Compile response with compiled code, diagnostics and statistics"
       properties:
         compiledCode:
           type: "string"
+          description: "Compiled JavaScript code"
         downloadId:
           type: "string"
+          description: "Download ID for the compiled code"
         warnings:
           type: "array"
+          description: "List of warnings generated during compilation"
           items:
             type: "string"
         errors:
           type: "array"
+          description: "List of errors generated during compilation"
           items:
             type: "string"
         statistics:
@@ -93,18 +161,49 @@ components:
 
     CompileRequest:
       type: "object"
+      description: "Compile request with JavaScript code and optional compiler settings"
+      required:
+        - "outputFileName"
+        - "payload"
       properties:
         compilationLevel:
           type: "string"
+          description: "Compilation level. If omitted, server default is used. Uppercase values are the stable REST API values; title-case values are accepted for UI/backward compatibility."
+          enum:
+            - "WHITESPACE"
+            - "SIMPLE"
+            - "ADVANCED"
+            - "Whitespace only"
+            - "Simple"
+            - "Advanced"
         warningLevel:
           type: "string"
+          description: "Warning level. If omitted, server default is used."
+          enum:
+            - "QUIET"
+            - "DEFAULT"
+            - "VERBOSE"
         outputFileName:
           type: "string"
+          description: "Output file name. Must be a valid file name."
         payload:
           type: "string"
+          description: "JavaScript code to be compiled."
         formatting:
           $ref: "#/components/schemas/Formatting"
         externalScripts:
           $ref: "#/components/schemas/ExternalScripts"
         language:
           $ref: "#/components/schemas/LanguageInOut"
+
+    ErrorResponse:
+      type: "object"
+      description: "Standard REST error response"
+      properties:
+        status:
+          type: "integer"
+          format: "int32"
+          description: "HTTP response status code"
+        error:
+          type: "string"
+          description: "Human-readable error message"
