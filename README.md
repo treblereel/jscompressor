@@ -60,6 +60,8 @@ The application can be configured using the following environment variables:
 - `MAX_DOWNLOAD_FILE_SIZE` - Sets the maximum file/script size that can be uploaded to the server. Default is 1048576 bytes (1MB).
 - `MAX_DOWNLOAD_URLS_PER_REQUEST` - Sets the maximum number of URLs that can be uploaded to the server. Default is 10.
 - `MAX_CACHE_DIR_SIZE` - Sets the maximum size of the cache directory. Default is 1073741824 bytes (1GB). Once limit is reached, the oldest files will be deleted.
+- `RATE_LIMIT_ENABLED` - Enables per-client REST rate limiting for `/compile` endpoints. Default is `true`.
+- `RATE_LIMIT_REQUESTS_PER_MINUTE` - Sets the maximum number of `/compile` requests per client per minute. Default is 120.
 
 All of the above can be set in the `application.properties` file or provided as environment variables to the docker container.
 

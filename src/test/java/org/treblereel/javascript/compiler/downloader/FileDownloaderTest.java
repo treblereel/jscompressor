@@ -103,5 +103,15 @@ public class FileDownloaderTest {
     public String cacheLocation() {
       return "cache";
     }
+
+    @Override
+    public boolean rateLimitEnabled() {
+      return true;
+    }
+
+    @Override
+    public long rateLimitRequestsPerMinute() {
+      return 120;
+    }
   }
 }

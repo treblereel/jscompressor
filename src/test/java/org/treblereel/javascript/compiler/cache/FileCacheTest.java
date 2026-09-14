@@ -181,5 +181,15 @@ public class FileCacheTest {
     public String cacheLocation() {
       return cacheDir.toString();
     }
+
+    @Override
+    public boolean rateLimitEnabled() {
+      return true;
+    }
+
+    @Override
+    public long rateLimitRequestsPerMinute() {
+      return 120;
+    }
   }
 }

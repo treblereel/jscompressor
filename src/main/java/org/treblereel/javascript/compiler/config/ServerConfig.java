@@ -43,4 +43,10 @@ public interface ServerConfig {
   @WithDefault("cache")
   String cacheLocation();
 
+  @WithDefault("true")
+  boolean rateLimitEnabled();
+
+  @WithDefault("120")
+  long rateLimitRequestsPerMinute();
+
 }
