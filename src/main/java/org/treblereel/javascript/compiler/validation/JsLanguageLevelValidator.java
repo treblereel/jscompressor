@@ -40,8 +40,11 @@ public class JsLanguageLevelValidator implements ConstraintValidator<JsLanguageL
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
-        if (value == null || value.isEmpty()) {
+        if (value == null) {
             return true;
+        }
+        if (value.isBlank()) {
+            return false;
         }
         try {
             CompilerOptions.LanguageMode languageMode = CompilerOptions.LanguageMode.fromString(value);

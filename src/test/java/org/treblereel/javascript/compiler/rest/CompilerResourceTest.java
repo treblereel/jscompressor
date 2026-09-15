@@ -282,6 +282,58 @@ public class CompilerResourceTest {
   }
 
   @Test
+  public void testCompileRejectsMalformedJson() {
+    assertCompileBadRequest("{");
+  }
+
+  @Test
+  public void testCompileRejectsNullRequest() {
+    assertCompileBadRequest("null");
+  }
+
+  @Test
+  public void testCompileRejectsEmptyLanguageIn() {
+    assertCompileBadRequest("""
+        {"payload":"alert(1);","outputFileName":"default.js","language":{"languageIn":""}}
+        """);
+  }
+
+  @Test
+  public void testCompileRejectsEmptyLanguageOut() {
+    assertCompileBadRequest("""
+        {"payload":"alert(1);","outputFileName":"default.js","language":{"languageOut":""}}
+        """);
+  }
+
+  @Test
+  public void testCompileAcceptsMissingAndNullOptionalFields() {
+    for (String json : List.of(
+        """
+        {"payload":"alert(1);","outputFileName":"default.js"}
+        """,
+        """
+        {"payload":"alert(1);","outputFileName":"default.js",
+         "compilationLevel":null,"warningLevel":null,"formatting":null,
+         "externalScripts":null,"language":null}
+        """,
+        """
+        {"payload":"alert(1);","outputFileName":"default.js","language":{}}
+        """,
+        """
+        {"payload":"alert(1);","outputFileName":"default.js",
+         "language":{"languageIn":null,"languageOut":null}}
+        """)) {
+      given()
+          .contentType(ContentType.JSON)
+          .body(json)
+          .when().post("/compile")
+          .then().statusCode(200)
+          .body("compiledCode", notNullValue())
+          .body("errors", hasSize(0));
+    }
+  }
+
+  @Test
   public void testCompileRejectsBlankExternalScriptUrl() {
     assertCompileBadRequest(
             """

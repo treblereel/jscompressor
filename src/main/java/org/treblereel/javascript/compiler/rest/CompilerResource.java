@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -150,7 +151,7 @@ public class CompilerResource {
               )
           }
   )
-  public Response compile(@Valid CompileRequest request) {
+  public Response compile(@NotNull @Valid CompileRequest request) {
     logger.info("received request from " + context.request().remoteAddress().host());
 
     long start = System.currentTimeMillis();
