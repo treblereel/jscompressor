@@ -17,7 +17,9 @@
 package org.treblereel.javascript.compiler.rest;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -41,16 +43,17 @@ public class RequestSizeFilter implements ContainerRequestFilter {
   public void filter(ContainerRequestContext requestContext) throws IOException {
     String contentLengthHeader = requestContext.getHeaderString("Content-Length");
     ServerConfig config = serverConfig.get();
+    long maxSize = bodyLimit(config.requestBodyMaxSize(), config.downloadFileMaxSize());
     if (contentLengthHeader != null) {
       try {
         long contentLength = Long.parseLong(contentLengthHeader);
-        if (contentLength > config.downloadFileMaxSize()) {
+        if (contentLength > maxSize) {
           requestContext.abortWith(
                   Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
                           .entity(new ErrorResponse(
                               Response.Status.REQUEST_ENTITY_TOO_LARGE.getStatusCode(),
                               "Request size exceeds the maximum limit of "
-                                  + config.downloadFileMaxSize()
+                                  + maxSize
                                   + " bytes"))
                           .type(MediaType.APPLICATION_JSON)
                           .build());
@@ -64,18 +67,19 @@ public class RequestSizeFilter implements ContainerRequestFilter {
                             "Invalid Content-Length header."))
                         .type(MediaType.APPLICATION_JSON)
                         .build());
+        return;
       }
     }
 
     if (requestContext.hasEntity()) {
-      byte[] entity = requestContext.getEntityStream().readAllBytes();
-      if (entity.length > config.downloadFileMaxSize()) {
+      byte[] entity = readEntity(requestContext.getEntityStream(), maxSize);
+      if (entity == null) {
         requestContext.abortWith(
                 Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
                         .entity(new ErrorResponse(
                             Response.Status.REQUEST_ENTITY_TOO_LARGE.getStatusCode(),
                             "Request size exceeds the maximum limit of "
-                                + config.downloadFileMaxSize()
+                                + maxSize
                                 + " bytes"))
                         .type(MediaType.APPLICATION_JSON)
                         .build());
@@ -83,5 +87,29 @@ public class RequestSizeFilter implements ContainerRequestFilter {
         requestContext.setEntityStream(new ByteArrayInputStream(entity));
       }
     }
+  }
+
+  static long bodyLimit(long configuredLimit, long payloadLimit) {
+    if (configuredLimit < 0 || payloadLimit < 0) {
+      throw new IllegalArgumentException("Request size limits must not be negative");
+    }
+    return configuredLimit == 0
+        ? Math.addExact(Math.multiplyExact(payloadLimit, 6), 65536)
+        : configuredLimit;
+  }
+
+  static byte[] readEntity(InputStream input, long maxSize) throws IOException {
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    byte[] buffer = new byte[8192];
+    long remaining = maxSize;
+    while (remaining > 0) {
+      int count = input.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+      if (count == -1) {
+        return output.toByteArray();
+      }
+      output.write(buffer, 0, count);
+      remaining -= count;
+    }
+    return input.read() == -1 ? output.toByteArray() : null;
   }
 }

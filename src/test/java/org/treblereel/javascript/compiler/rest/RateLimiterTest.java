@@ -83,6 +83,11 @@ public class RateLimiterTest {
     }
 
     @Override
+    public long requestBodyMaxSize() {
+      return 0;
+    }
+
+    @Override
     public long cacheMaxSize() {
       return 1024;
     }

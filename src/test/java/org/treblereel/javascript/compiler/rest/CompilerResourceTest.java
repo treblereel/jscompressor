@@ -437,6 +437,7 @@ public class CompilerResourceTest {
     assertTrue(openApiYaml.contains("ErrorResponse"));
     assertTrue(openApiYaml.contains("\"400\""));
     assertTrue(openApiYaml.contains("\"404\""));
+    assertTrue(openApiYaml.contains("\"413\""));
     assertTrue(openApiYaml.contains("\"429\""));
     assertTrue(openApiYaml.contains("\"500\""));
   }

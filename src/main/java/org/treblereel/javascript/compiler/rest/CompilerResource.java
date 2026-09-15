@@ -134,6 +134,14 @@ public class CompilerResource {
                       )
               ),
               @APIResponse(
+                      responseCode = "413",
+                      description  = "Request body exceeds the configured size limit",
+                      content      = @Content(
+                              mediaType = "application/json",
+                              schema    = @Schema(implementation = ErrorResponse.class)
+                      )
+              ),
+              @APIResponse(
                       responseCode = "429",
                       description  = "Too many requests",
                       content      = @Content(

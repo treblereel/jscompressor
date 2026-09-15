@@ -158,6 +158,11 @@ public class FileCacheTest {
     }
 
     @Override
+    public long requestBodyMaxSize() {
+      return 0;
+    }
+
+    @Override
     public long downloadUrlsPreRequest() {
       return 10;
     }

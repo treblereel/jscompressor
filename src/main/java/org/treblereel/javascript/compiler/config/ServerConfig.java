@@ -25,6 +25,9 @@ public interface ServerConfig {
   @WithDefault("102400")
   long downloadFileMaxSize();
 
+  @WithDefault("0")
+  long requestBodyMaxSize();
+
   @WithDefault("102400")
   long cacheMaxSize();
 
