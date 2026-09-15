@@ -61,6 +61,9 @@ public class RateLimitFilter implements ContainerRequestFilter {
 
   private boolean isCompileEndpoint(ContainerRequestContext requestContext) {
     String path = requestContext.getUriInfo().getPath();
+    if (path.startsWith("/")) {
+      path = path.substring(1);
+    }
     return path.equals("compile") || path.startsWith("compile/");
   }
 
