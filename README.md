@@ -39,9 +39,8 @@ npm run build
 
 #### Docker/Podman
 
-# JVM and Native images are available in the Docker Hub
+# The native image is available on Docker Hub
 `https://hub.docker.com/repository/docker/treblereel/jscompressor/general`
-`https://hub.docker.com/repository/docker/treblereel/jscompressor-native/general`
 
 ## JVM based
 1. Clone the repository
@@ -58,7 +57,7 @@ npm run build
 ### Publish the native image
 
 The `Publish native image` GitHub Actions workflow publishes `linux/amd64` images to
-`docker.io/treblereel/jscompressor-native`. Configure these repository secrets before running it:
+`docker.io/treblereel/jscompressor`. Configure these repository secrets before running it:
 
 - `DOCKERHUB_USERNAME` - Docker Hub username.
 - `DOCKERHUB_TOKEN` - Docker Hub access token with permission to push the repository.
