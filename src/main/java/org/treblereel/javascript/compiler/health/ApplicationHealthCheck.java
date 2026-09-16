@@ -16,32 +16,55 @@
 
 package org.treblereel.javascript.compiler.health;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
+import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Liveness;
 import org.eclipse.microprofile.health.Readiness;
 import org.eclipse.microprofile.health.Startup;
+import org.treblereel.javascript.compiler.config.ServerConfig;
+import org.treblereel.javascript.compiler.externs.ExternsProcessor;
 
 @ApplicationScoped
 public class ApplicationHealthCheck {
 
+  @Inject
+  ServerConfig serverConfig;
+
+  @Inject
+  ExternsProcessor externsProcessor;
+
   @Startup
   @Produces
-  public HealthCheckResponse onStart() {
-    return HealthCheckResponse.named("Application startup check").up().build();
+  public HealthCheck onStart() {
+    return () -> HealthCheckResponse.named("Application startup check").up().build();
   }
 
   @Liveness
   @Produces
-  public HealthCheckResponse check() {
-    return HealthCheckResponse.named("Application liveness check").up().build();
+  public HealthCheck check() {
+    return () -> HealthCheckResponse.named("Application liveness check").up().build();
   }
 
   @Readiness
   @Produces
-  public HealthCheckResponse readiness() {
-    return HealthCheckResponse.named("Application readiness check").up().build();
+  public HealthCheck readiness() {
+    return () -> HealthCheckResponse.named("Application readiness check")
+        .status(isReady())
+        .build();
+  }
+
+  private boolean isReady() {
+    Path cacheDirectory = Path.of(serverConfig.cacheLocation()).toAbsolutePath().normalize();
+    return !externsProcessor.getExterns().isEmpty()
+        && Files.isDirectory(cacheDirectory)
+        && Files.isReadable(cacheDirectory)
+        && Files.isWritable(cacheDirectory);
   }
 }
