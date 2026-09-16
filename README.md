@@ -1,3 +1,4 @@
+[![CI](https://github.com/treblereel/jscompressor/actions/workflows/ci.yml/badge.svg)](https://github.com/treblereel/jscompressor/actions/workflows/ci.yml)
 [![Docker Pulls](https://img.shields.io/docker/pulls/treblereel/jscompressor.svg)](https://hub.docker.com/r/treblereel/jscompressor)
 [![Docker Image Version (latest by date)](https://img.shields.io/docker/v/treblereel/jscompressor?sort=semver)](https://hub.docker.com/r/treblereel/jscompressor/tags)
 
