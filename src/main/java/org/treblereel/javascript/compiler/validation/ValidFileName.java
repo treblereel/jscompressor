@@ -25,7 +25,7 @@ import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
 @Constraint(validatedBy = FileNameValidator.class)
-@Target({ElementType.FIELD, ElementType.METHOD})
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidFileName {
   String message() default "Invalid file name format. It must be in form of 'filename.js'";

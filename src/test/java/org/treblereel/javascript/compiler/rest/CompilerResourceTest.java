@@ -408,6 +408,44 @@ public class CompilerResourceTest {
   }
 
   @Test
+  public void testDownloadUsesDefaultFileNameWhenQueryIsMissing() {
+    String downloadId = compileCollisionPayload("default-name").path("downloadId");
+
+    given()
+        .when().get("/compile/{downloadId}", downloadId)
+        .then()
+        .statusCode(200)
+        .header("Content-Disposition", is("attachment; filename=\"default.js\""));
+  }
+
+  @Test
+  public void testDownloadUsesRequestedFileName() {
+    String downloadId = compileCollisionPayload("custom-name").path("downloadId");
+
+    given()
+        .queryParam("filename", "compiled-output.js")
+        .when().get("/compile/{downloadId}", downloadId)
+        .then()
+        .statusCode(200)
+        .header("Content-Disposition", is("attachment; filename=\"compiled-output.js\""));
+  }
+
+  @Test
+  public void testDownloadRejectsInvalidFileName() {
+    String downloadId = compileCollisionPayload("invalid-name").path("downloadId");
+
+    given()
+        .queryParam("filename", "../compiled.js")
+        .when().get("/compile/{downloadId}", downloadId)
+        .then()
+        .statusCode(400)
+        .contentType(ContentType.JSON)
+        .body("status", is(400))
+        .body("error", notNullValue())
+        .body("stack", nullValue());
+  }
+
+  @Test
   public void testHashCollisionDownloadsMatchingCompiledCode() {
     io.restassured.response.Response first = compileCollisionPayload("Aa");
     io.restassured.response.Response second = compileCollisionPayload("BB");
@@ -451,6 +489,7 @@ public class CompilerResourceTest {
     assertTrue(openApiYaml.contains("/compile:"));
     assertTrue(openApiYaml.contains("operationId: compile"));
     assertTrue(openApiYaml.contains("operationId: read"));
+    assertTrue(openApiYaml.contains("name: filename"));
     assertTrue(openApiYaml.contains("ErrorResponse"));
     assertTrue(openApiYaml.contains("\"400\""));
     assertTrue(openApiYaml.contains("\"404\""));

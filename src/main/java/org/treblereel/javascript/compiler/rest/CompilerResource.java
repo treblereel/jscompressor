@@ -33,6 +33,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -65,6 +66,7 @@ import org.treblereel.javascript.compiler.domain.ErrorResponse;
 import org.treblereel.javascript.compiler.domain.Statistics;
 import org.treblereel.javascript.compiler.downloader.FileDownloader;
 import org.treblereel.javascript.compiler.externs.ExternsProcessor;
+import org.treblereel.javascript.compiler.validation.ValidFileName;
 
 @Path("/compile")
 public class CompilerResource {
@@ -310,6 +312,14 @@ public class CompilerResource {
                       )
               ),
               @APIResponse(
+                      responseCode = "400",
+                      description  = "Invalid output file name",
+                      content      = @Content(
+                              mediaType = "application/json",
+                              schema    = @Schema(implementation = ErrorResponse.class)
+                      )
+              ),
+              @APIResponse(
                       responseCode = "404",
                       description  = "Compiled code was not found",
                       content      = @Content(
@@ -335,7 +345,15 @@ public class CompilerResource {
               )
           }
   )
-  public Response read(@PathParam("hash") String hash) {
+  public Response read(
+      @PathParam("hash") String hash,
+      @Parameter(
+          name = "filename",
+          description = "Optional downloaded file name",
+          in = ParameterIn.QUERY,
+          schema = @Schema(type = SchemaType.STRING))
+      @QueryParam("filename")
+      @ValidFileName String filename) {
     byte[] bytes = new byte[0];
     try {
       bytes = cache.get(hash);
@@ -355,8 +373,9 @@ public class CompilerResource {
           .type(MediaType.APPLICATION_JSON)
           .build();
     }
+    String outputFileName = filename == null ? "default.js" : filename;
     return Response.ok(bytes)
-        .header("Content-Disposition", "attachment; filename=\"default.js\"")
+        .header("Content-Disposition", "attachment; filename=\"" + outputFileName + "\"")
         .build();
   }
 }

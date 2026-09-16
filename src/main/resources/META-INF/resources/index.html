@@ -98,6 +98,8 @@ hello('New user');`,
           optimization: 'Whitespace only',
           prettyPrint: false,
           printInputDelimiter: false,
+          warningLevel: 'DEFAULT',
+          outputFileName: 'default.js',
           languageIn: 'ECMASCRIPT_2021',
           languageOut: 'ECMASCRIPT_2021',
           selectedKeys: [],
@@ -108,12 +110,17 @@ hello('New user');`,
           success: false,
           error: false,
           errorMessage: '',
+          copyLabel: 'Copy code to the clipboard',
           result: {
             originalSize: 0,
             compiledSize: 0,
             compressionRatio: null,
             downloadId: '',
             outputFileName: ''
+          },
+
+          get outputFileNameValid() {
+            return /^[a-zA-Z0-9_-]+\.js$/.test(this.outputFileName)
           },
 
           init() {
@@ -151,8 +158,8 @@ hello('New user');`,
             const postData = {
                 payload: this.textareaContent,
                 compilationLevel: this.optimization,
-                warningLevel: 'DEFAULT',
-                outputFileName: 'default.js',
+                warningLevel: this.warningLevel,
+                outputFileName: this.outputFileName,
                 language: {
                     languageIn: this.languageIn,
                     languageOut: this.languageOut
@@ -218,13 +225,25 @@ hello('New user');`,
                 ? ((result.statistics.compiledSize / result.statistics.originalSize) * 100).toFixed(2)
                 : null;
 
-            this.result.outputFileName = result.outputFileName;
+            this.result.outputFileName = postData.outputFileName;
             this.result.downloadId = result.downloadId;
 
             Alpine.store('compiler').compiledCode = result.compiledCode || '';
             Alpine.store('compiler').warnings = result.warnings || [];
             Alpine.store('compiler').errors = result.errors || [];
             Alpine.store('compiler').postData = postData;
+        },
+
+        async copyCompiledCode() {
+            try {
+                await navigator.clipboard.writeText(Alpine.store('compiler').compiledCode);
+                this.copyLabel = 'Copied';
+            } catch (error) {
+                this.copyLabel = 'Copy failed';
+            }
+            setTimeout(() => {
+                this.copyLabel = 'Copy code to the clipboard';
+            }, 1500);
         },
 
           startDragging() {
@@ -272,7 +291,7 @@ hello('New user');`,
 >
     <div
             :style="leftPanelStyle"
-            class="bg-gray-100 m-2 p-4 rounded shadow min-h-[400px] flex flex-col"
+            class="bg-gray-100 my-2 md:m-2 p-4 rounded shadow min-h-[400px] flex flex-col"
     >
         <div
                 x-data="{
@@ -317,12 +336,12 @@ hello('New user');`,
             this.$dispatch('update-selected-keys', this.selectedKeys);
         }
     }"
-                class="relative inline-block mb-1"
+                class="relative block w-full mb-1"
                 @change="updateSelectedKeys()"
         >
             <button
                     @click="open = !open"
-                    class="w-120 px-4 py-2 text-sm border border-gray-300 rounded-md bg-white shadow-sm focus:outline-none flex justify-between items-center"
+                    class="w-full px-4 py-2 text-sm border border-gray-300 rounded-md bg-white shadow-sm focus:outline-none flex justify-between items-center"
             >
                 <span>Select or add additional JavaScript libraries</span>
                 <svg
@@ -341,7 +360,7 @@ hello('New user');`,
             <div
                     x-show="open"
                     @click.away="open = false"
-                    class="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-md shadow-lg"
+                    class="absolute z-10 w-full max-h-80 overflow-y-auto mt-2 bg-white border border-gray-200 rounded-md shadow-lg"
                     style="display: none;"
             >
                 <template x-for="option in options" :key="option.key">
@@ -381,7 +400,7 @@ hello('New user');`,
                 </template>
                 <template x-for="(value, idx) in getSelectedValues()" :key="idx">
             <span
-                    class="inline-block text-sm bg-blue-100 text-blue-700 rounded px-2 py-1 mr-1 mb-1"
+                    class="inline-block max-w-full break-all text-sm bg-blue-100 text-blue-700 rounded px-2 py-1 mr-1 mb-1"
                     x-text="value"
             ></span>
                 </template>
@@ -390,7 +409,7 @@ hello('New user');`,
 
         <div class="mb-4">
             <p class="mb-1 font-semibold text-sm">Optimization:</p>
-            <div class="flex space-x-4 items-center">
+            <div class="flex flex-wrap gap-x-4 gap-y-2 items-center">
                 <label class="inline-flex items-center space-x-1">
                     <input
                             type="radio"
@@ -473,7 +492,7 @@ hello('New user');`,
                 </div>
 
                 <!-- Language settings - responsive side by side section -->
-                <div class="p-3">
+                <div class="p-3 border-b border-gray-200">
                     <p class="mb-3 font-semibold text-sm">JavaScript Versions:</p>
 
                     <div class="flex flex-wrap gap-4">
@@ -526,13 +545,49 @@ hello('New user');`,
                         </div>
                     </div>
                 </div>
+
+                <div class="p-3">
+                    <p class="mb-3 font-semibold text-sm">Output settings:</p>
+                    <div class="flex flex-wrap gap-4">
+                        <div class="flex-1 min-w-[250px]">
+                            <label for="warningLevel" class="block text-sm font-medium text-gray-700 mb-1">Warning level:</label>
+                            <select
+                                    id="warningLevel"
+                                    x-model="warningLevel"
+                                    class="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                            >
+                                <option value="QUIET">QUIET</option>
+                                <option value="DEFAULT">DEFAULT</option>
+                                <option value="VERBOSE">VERBOSE</option>
+                            </select>
+                        </div>
+
+                        <div class="flex-1 min-w-[250px]">
+                            <label for="outputFileName" class="block text-sm font-medium text-gray-700 mb-1">Output file name:</label>
+                            <input
+                                    id="outputFileName"
+                                    type="text"
+                                    x-model.trim="outputFileName"
+                                    :class="outputFileNameValid ? 'border-gray-300' : 'border-red-500'"
+                                    class="block w-full text-sm rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    aria-describedby="outputFileNameHelp"
+                            />
+                            <p
+                                    id="outputFileNameHelp"
+                                    class="mt-1 text-xs"
+                                    :class="outputFileNameValid ? 'text-gray-500' : 'text-red-600'"
+                                    x-text="outputFileNameValid ? 'Letters, numbers, underscores and hyphens; must end in .js' : 'Enter a valid JavaScript file name, for example app.min.js is not supported; use app-min.js'"
+                            ></p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="mb-2 flex space-x-4">
             <button
                     @click="handleCompilerClick();"
-                    :disabled="loading"
+                    :disabled="loading || !outputFileNameValid"
                     class="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-1 px-2 rounded w-40"
             >
                 <span x-text="loading ? 'Compiling…' : 'Compile'"></span>
@@ -547,7 +602,7 @@ hello('New user');`,
         </div>
 
         <label for="customTextarea" class="block text-gray-700 mb-0 text-sm">Add your code here:</label>
-        <div class="flex-1 mt-4 max-h-100">
+        <div class="flex-1 mt-4 min-h-[300px]">
             <div class="code-editor">
                 <pre
                         id="customTextareaLineNumbers"
@@ -567,16 +622,16 @@ hello('New user');`,
     </div>
 
     <div
-            class="relative flex items-center justify-center bg-gray-300 w-2 cursor-col-resize"
+            class="hidden md:flex items-center justify-center bg-gray-300 w-2 cursor-col-resize"
             @mousedown="startDragging"
     ></div>
 
     <div
             :style="rightPanelStyle"
-            class="relative bg-gray-100 m-2 p-4 rounded shadow min-h-[400px] flex flex-col"
+            class="relative bg-gray-100 my-2 md:m-2 p-4 rounded shadow min-h-[400px] flex flex-col"
     >
         <div
-                class="absolute top-2 left-2 bg-white text-gray-800 text-sm rounded shadow p-2 z-10"
+                class="mb-4 bg-white text-gray-800 text-sm rounded shadow p-2"
                 x-show="loading || success || error"
         >
             <template x-if="loading">
@@ -597,10 +652,10 @@ hello('New user');`,
                     <p>
                         The code may also be accessed at
                         <a
-                                :href="`/compile/${result.downloadId}`"
+                                :href="`/compile/${result.downloadId}?filename=${encodeURIComponent(result.outputFileName)}`"
                                 class="text-blue-600 hover:underline"
                         >
-                            <span>default.js</span>
+                            <span x-text="result.outputFileName"></span>
                         </a>
                     </p>
                 </div>
@@ -611,9 +666,9 @@ hello('New user');`,
             </template>
         </div>
 
-        <div class="mt-32 border-b border-gray-300 flex space-x-4">
+        <div class="border-b border-gray-300 flex gap-4 overflow-x-auto whitespace-nowrap">
             <button
-                    class="px-2 py-1 border-b-2"
+                    class="shrink-0 px-2 py-1 border-b-2"
                     :class="activeTab === 'compiledCode'
               ? 'border-blue-500 text-blue-500'
               : 'border-transparent text-gray-600'"
@@ -622,7 +677,7 @@ hello('New user');`,
                 Compiled Code
             </button>
             <button
-                    class="px-2 py-1 border-b-2"
+                    class="shrink-0 px-2 py-1 border-b-2"
                     :class="activeTab === 'warnings'
               ? 'border-blue-500 text-blue-500'
               : 'border-transparent text-gray-600'"
@@ -634,7 +689,7 @@ hello('New user');`,
                 )</span>
             </button>
             <button
-                    class="px-2 py-1 border-b-2"
+                    class="shrink-0 px-2 py-1 border-b-2"
                     :class="activeTab === 'errors'
               ? 'border-blue-500 text-blue-500'
               : 'border-transparent text-gray-600'"
@@ -646,7 +701,7 @@ hello('New user');`,
                 )</span>
             </button>
             <button
-                    class="px-2 py-1 border-b-2"
+                    class="shrink-0 px-2 py-1 border-b-2"
                     :class="activeTab === 'postData'
               ? 'border-blue-500 text-blue-500'
               : 'border-transparent text-gray-600'"
@@ -658,13 +713,14 @@ hello('New user');`,
 
         <div class="flex-1 overflow-auto p-1">
             <div x-show="activeTab === 'compiledCode'" class="space-y-1 max-h-80">
-
-                <button
-                        @click="navigator.clipboard.writeText($store.compiler.compiledCode)"
-                        class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded shadow hover:bg-green-600 transition"
-                >
-                    Copy code to the clipboard
-                </button>
+                <div class="flex justify-end">
+                    <button
+                            @click="copyCompiledCode()"
+                            :disabled="!$store.compiler.compiledCode"
+                            class="bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs px-2 py-1 rounded shadow hover:bg-green-600 transition"
+                            x-text="copyLabel"
+                    ></button>
+                </div>
 
                 <pre class="text-xs bg-gray-200 p-2 rounded overflow-auto">
                     <code x-text="$store.compiler.compiledCode"></code>
@@ -677,7 +733,7 @@ hello('New user');`,
                         <p class="text-gray-500 text-xs p-2">No warnings to display.</p>
                     </template>
                     <template x-for="(warning, index) in $store.compiler.warnings" :key="index" >
-                        <p class="text-xs text-grey-600 leading-tight px-2" x-text="warning"></p>
+                        <p class="text-xs text-gray-600 leading-tight px-2" x-text="warning"></p>
                     </template>
                 </pre>
             </div>
