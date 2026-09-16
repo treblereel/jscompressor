@@ -14,31 +14,16 @@
  * limitations under the License.
  */
 
-package org.treblereel.javascript.compiler.config;
+@OpenAPIDefinition(
+    info = @Info(
+        title = "JSCompressor API",
+        version = "0.1",
+        description = "JSCompressor API"),
+    servers = @Server(
+        url = "https://jscompressor.treblereel.dev/",
+        description = "Production server"))
+package org.treblereel.javascript.compiler.rest;
 
-import io.smallrye.config.ConfigMapping;
-
-@ConfigMapping(prefix = "server")
-public interface ServerConfig {
-
-  long downloadFileMaxSize();
-
-  long requestBodyMaxSize();
-
-  long cacheMaxSize();
-
-  long downloadUrlsPreRequest();
-
-  int downloadConnectTimeoutMs();
-
-  int downloadReadTimeoutMs();
-
-  int downloadMaxRedirects();
-
-  String cacheLocation();
-
-  boolean rateLimitEnabled();
-
-  long rateLimitRequestsPerMinute();
-
-}
+import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
+import org.eclipse.microprofile.openapi.annotations.info.Info;
+import org.eclipse.microprofile.openapi.annotations.servers.Server;

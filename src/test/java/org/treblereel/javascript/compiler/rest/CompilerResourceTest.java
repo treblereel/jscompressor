@@ -431,6 +431,8 @@ public class CompilerResourceTest {
 
     assertTrue(openApiYaml.contains("openapi: 3.0.3"));
     assertTrue(openApiYaml.contains("title: JSCompressor API"));
+    assertTrue(openApiYaml.contains("url: https://jscompressor.treblereel.dev/"));
+    assertTrue(openApiYaml.contains("description: Production server"));
     assertTrue(openApiYaml.contains("/compile:"));
     assertTrue(openApiYaml.contains("operationId: compile"));
     assertTrue(openApiYaml.contains("operationId: read"));

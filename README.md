@@ -66,6 +66,8 @@ The application can be configured using the following environment variables:
 
 All of the above can be set in the `application.properties` file or provided as environment variables to the docker container.
 
+Server defaults are defined in `src/main/resources/application.properties`. Both container images use these defaults, except for `CACHE_DIR=/volume`.
+
 The HTTP server (`quarkus.http.limits.max-body-size`) and any reverse proxy may impose a lower body limit. Configure those separately when increasing the application limits; responses rejected by those layers may use their own error format.
 
 ### OpenAPI
