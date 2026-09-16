@@ -52,17 +52,31 @@ public class FileCache {
     }
   }
 
-  public synchronized void put(String filename, byte[] content) throws Exception {
-    Path path = resolveCachePath(filename);
-    if (Files.exists(path)) {
-      return;
-    }
+  public synchronized String put(String filename, byte[] content) throws Exception {
     if (content.length > serverConfig.cacheMaxSize()) {
       throw new Exception("File is larger than cache max size");
     }
 
-    evict(content);
-    writeFileToCache(path, content);
+    String candidate = filename;
+    int collision = 0;
+    while (true) {
+      Path path = resolveCachePath(candidate);
+      if (Files.exists(path)) {
+        try {
+          if (Arrays.equals(Files.readAllBytes(path), content)) {
+            return candidate;
+          }
+        } catch (NoSuchFileException ignored) {
+          continue;
+        }
+        candidate = filename + "-" + ++collision;
+        continue;
+      }
+
+      evict(content);
+      writeFileToCache(path, content);
+      return candidate;
+    }
   }
 
   public synchronized byte[] get(String filename) throws Exception {

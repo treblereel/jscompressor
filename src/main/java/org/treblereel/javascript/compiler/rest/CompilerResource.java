@@ -243,7 +243,7 @@ public class CompilerResource {
       response.setCompiledCode(compiler.toSource());
       String hash = Long.toHexString(request.hashCode());
       try {
-        cache.put(hash, compiler.toSource().getBytes(StandardCharsets.UTF_8));
+        hash = cache.put(hash, compiler.toSource().getBytes(StandardCharsets.UTF_8));
       } catch (Exception e) {
         return Response.status(Response.Status.BAD_REQUEST)
             .entity(new ErrorResponse(

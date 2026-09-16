@@ -32,6 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.treblereel.javascript.compiler.config.ServerConfig;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -102,6 +103,30 @@ public class FileCacheTest {
     assertThrows(Exception.class, () -> cache.put("huge", bytes("123456")));
     assertArrayEquals(bytes("1234"), cache.get("existing"));
     assertNull(cache.get("huge"));
+  }
+
+  @Test
+  public void putKeepsBaseIdForIdenticalContent() throws Exception {
+    Path cacheDir = tempDir.resolve("cache");
+    Files.createDirectories(cacheDir);
+    FileCache cache = createCache(cacheDir, 100);
+
+    assertEquals("same-id", cache.put("same-id", bytes("content")));
+    assertEquals("same-id", cache.put("same-id", bytes("content")));
+    assertArrayEquals(bytes("content"), cache.get("same-id"));
+  }
+
+  @Test
+  public void putAddsSuffixOnlyWhenIdsCollide() throws Exception {
+    Path cacheDir = tempDir.resolve("cache");
+    Files.createDirectories(cacheDir);
+    FileCache cache = createCache(cacheDir, 100);
+
+    assertEquals("same-id", cache.put("same-id", bytes("first")));
+    assertEquals("same-id-1", cache.put("same-id", bytes("second")));
+    assertEquals("same-id-1", cache.put("same-id", bytes("second")));
+    assertArrayEquals(bytes("first"), cache.get("same-id"));
+    assertArrayEquals(bytes("second"), cache.get("same-id-1"));
   }
 
   @Test

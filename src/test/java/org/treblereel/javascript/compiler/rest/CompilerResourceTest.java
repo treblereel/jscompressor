@@ -41,6 +41,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
@@ -407,6 +408,20 @@ public class CompilerResourceTest {
   }
 
   @Test
+  public void testHashCollisionDownloadsMatchingCompiledCode() {
+    io.restassured.response.Response first = compileCollisionPayload("Aa");
+    io.restassured.response.Response second = compileCollisionPayload("BB");
+
+    String firstId = first.path("downloadId");
+    String secondId = second.path("downloadId");
+    assertNotEquals(firstId, secondId);
+    assertTrue(secondId.startsWith(firstId + "-"));
+
+    assertEquals(first.path("compiledCode"), download(firstId));
+    assertEquals(second.path("compiledCode"), download(secondId));
+  }
+
+  @Test
   public void testUnknownRouteReturnsJsonNotFound() {
     given()
             .when()
@@ -548,6 +563,28 @@ public class CompilerResourceTest {
             .body("statistics.compiledSize", is(13))
             .body("statistics.originalSize", is(2308890))
             .body("warnings", hasSize(0));
+  }
+
+  private io.restassured.response.Response compileCollisionPayload(String value) {
+    return given()
+        .contentType(ContentType.JSON)
+        .body("""
+            {
+              "payload": "alert(\\"%s\\");",
+              "outputFileName": "collision-test.js",
+              "compilationLevel": "Whitespace only"
+            }
+            """.formatted(value))
+        .when().post("/compile")
+        .then().statusCode(200)
+        .extract().response();
+  }
+
+  private String download(String downloadId) {
+    return given()
+        .when().get("/compile/{downloadId}", downloadId)
+        .then().statusCode(200)
+        .extract().asString();
   }
 
   private void assertCompileBadRequest(String json) {
