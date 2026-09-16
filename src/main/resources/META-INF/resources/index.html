@@ -102,15 +102,16 @@ hello('New user');`,
           languageOut: 'ECMASCRIPT_2021',
           selectedKeys: [],
           showFormatting: false,
+          activeTab: 'compiledCode',
 
           loading: false,
           success: false,
           error: false,
-          errorMessage: 'Compilation did not complete successfully. See console errors for details',
+          errorMessage: '',
           result: {
             originalSize: 0,
             compiledSize: 0,
-            compressionRatio: 0,
+            compressionRatio: null,
             downloadId: '',
             outputFileName: ''
           },
@@ -129,9 +130,23 @@ hello('New user');`,
           },
 
           async handleCompilerClick() {
+            if (this.loading) return;
+
             this.loading = true;
             this.success = false;
             this.error = false;
+            this.errorMessage = '';
+            this.result.originalSize = 0;
+            this.result.compiledSize = 0;
+            this.result.compressionRatio = null;
+            this.result.downloadId = '';
+            this.result.outputFileName = '';
+            this.activeTab = 'compiledCode';
+
+            Alpine.store('compiler').compiledCode = '';
+            Alpine.store('compiler').warnings = [];
+            Alpine.store('compiler').errors = [];
+            Alpine.store('compiler').postData = {};
 
             const postData = {
                 payload: this.textareaContent,
@@ -149,6 +164,7 @@ hello('New user');`,
                 externalScripts: {urls: this.selectedKeys}
 
             };
+            Alpine.store('compiler').postData = postData;
 
             try {
                 const response = await fetch('/compile', {
@@ -160,7 +176,15 @@ hello('New user');`,
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    let message = `Request failed with status ${response.status}`;
+                    try {
+                        const errorResponse = await response.json();
+                        if (errorResponse && typeof errorResponse.error === 'string') {
+                            message = errorResponse.error;
+                        }
+                    } catch (ignored) {
+                    }
+                    throw new Error(message);
                 }
 
                 const result = await response.json();
@@ -168,6 +192,9 @@ hello('New user');`,
 
             } catch (error) {
                 console.error('Error during compilation:', error);
+                this.errorMessage = error instanceof Error
+                    ? error.message
+                    : 'Compilation request failed';
                 this.error = true;
             } finally {
                this.loading = false;
@@ -177,27 +204,27 @@ hello('New user');`,
         onPostFinished(result, postData) {
             if( result.errors && result.errors.length > 0 ) {
                 this.error = true;
+                this.errorMessage = 'Compilation completed with errors. See the Errors tab.';
+                this.activeTab = 'errors';
             } else {
                 this.success = true;
+                this.activeTab = 'compiledCode';
             }
-
-            console.log('Compilation result:', result);
 
             this.result.originalSize = result.statistics.originalSize;
             this.result.compiledSize = result.statistics.compiledSize;
 
-            var compressionRatio = ((result.statistics.compiledSize / result.statistics.originalSize) * 100).toFixed(2);
-            this.result.compressionRatio = compressionRatio;
+            this.result.compressionRatio = result.statistics.originalSize > 0
+                ? ((result.statistics.compiledSize / result.statistics.originalSize) * 100).toFixed(2)
+                : null;
 
             this.result.outputFileName = result.outputFileName;
             this.result.downloadId = result.downloadId;
 
-            Alpine.store('compiler').compiledCode = result.compiledCode;
-            Alpine.store('compiler').warnings = result.warnings;
-            Alpine.store('compiler').errors = result.errors;
+            Alpine.store('compiler').compiledCode = result.compiledCode || '';
+            Alpine.store('compiler').warnings = result.warnings || [];
+            Alpine.store('compiler').errors = result.errors || [];
             Alpine.store('compiler').postData = postData;
-
-            this.activeTab = 'compiledCode';
         },
 
           startDragging() {
@@ -269,7 +296,7 @@ hello('New user');`,
         addCustomValue() {
             if (this.newOption.trim()) {
                 const value = this.newOption.trim();
-                const key = value.toLowerCase().replace(/\s+/g, '_');
+                const key = value;
                 const exists = this.options.some(option => option.key === key || option.value === value);
                 if (!exists) {
                     this.options.push({ key, value });
@@ -277,6 +304,7 @@ hello('New user');`,
                 if (!this.selectedKeys.includes(key)) {
                     this.selectedKeys.push(key);
                 }
+                this.updateSelectedKeys();
                 this.newOption = '';
             }
         },
@@ -504,9 +532,10 @@ hello('New user');`,
         <div class="mb-2 flex space-x-4">
             <button
                     @click="handleCompilerClick();"
-                    class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-2 rounded w-40"
+                    :disabled="loading"
+                    class="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-1 px-2 rounded w-40"
             >
-                Compile
+                <span x-text="loading ? 'Compiling…' : 'Compile'"></span>
             </button>
 
             <button
@@ -545,7 +574,6 @@ hello('New user');`,
     <div
             :style="rightPanelStyle"
             class="relative bg-gray-100 m-2 p-4 rounded shadow min-h-[400px] flex flex-col"
-            x-data="{ activeTab: 'compiledCode' }"
     >
         <div
                 class="absolute top-2 left-2 bg-white text-gray-800 text-sm rounded shadow p-2 z-10"
@@ -560,7 +588,12 @@ hello('New user');`,
                     <p>Compilation was a success!</p>
                     <p>Original size: <span x-text="result.originalSize"></span> bytes</p>
                     <p>Compiled size: <span x-text="result.compiledSize"></span> bytes</p>
-                    <p>Compression ratio: <span x-text="result.compressionRatio"></span>%</p>
+                    <template x-if="result.compressionRatio !== null">
+                        <p>Compression ratio: <span x-text="result.compressionRatio"></span>%</p>
+                    </template>
+                    <template x-if="result.compressionRatio === null">
+                        <p>Compression ratio: n/a</p>
+                    </template>
                     <p>
                         The code may also be accessed at
                         <a
