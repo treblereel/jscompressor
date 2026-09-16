@@ -7,6 +7,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
     <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        :focus-visible {
+            outline: 3px solid #f59e0b !important;
+            outline-offset: 2px !important;
+        }
+
         .code-editor {
             position: relative;
             min-height: 300px;
@@ -59,34 +68,47 @@
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
+<a href="#main-content"
+   class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:text-blue-700 focus:px-4 focus:py-2 focus:rounded">
+    Skip to main content
+</a>
 <header class="bg-blue-600 text-white p-4">
     <div class="container mx-auto flex justify-between items-center">
         <div class="nav-links flex items-center">
-            <span class="left text-xl font-semibold">Closure Compiler version ${closure-compiler.version}</span>
+            <h1 class="left text-xl font-semibold">Closure Compiler version ${closure-compiler.version}</h1>
         </div>
 
         <div class="nav-links hidden md:flex items-center space-x-6">
-            <a href="openapi.yaml" target="_blank" class="hover:underline">REST API</a>
+            <a href="openapi.yaml" target="_blank" rel="noopener noreferrer" class="hover:underline">REST API</a>
         </div>
 
         <div class="md:hidden" x-data="{ open: false }">
-            <button @click="open = !open" class="focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+            <button
+                    type="button"
+                    @click="open = !open"
+                    :aria-expanded="open"
+                    aria-controls="mobile-navigation"
+                    aria-label="Toggle navigation"
+                    class="focus:outline-none"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" aria-hidden="true"
                      viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
             </button>
 
-            <div x-show="open" @click.away="open = false" x-transition
+            <div id="mobile-navigation" x-show="open" x-cloak @click.away="open = false" x-transition
                  class="absolute top-16 right-4 bg-blue-600 rounded-md shadow-lg py-2 w-40">
-                <a href="openapi.yaml" target="_blank" class="block px-4 py-2 hover:bg-blue-500">REST API</a>
+                <a href="openapi.yaml" target="_blank" rel="noopener noreferrer"
+                   class="block px-4 py-2 hover:bg-blue-500">REST API</a>
             </div>
         </div>
     </div>
 </header>
 
 <main
+        id="main-content"
         x-data="{
           leftWidth: 50,
           dragging: false,
@@ -267,6 +289,18 @@ hello('New user');`,
             this.leftWidth = newWidth
           },
 
+          adjustPanelWidth(change) {
+            this.leftWidth = Math.min(70, Math.max(30, this.leftWidth + change))
+          },
+
+          selectAdjacentTab(change) {
+            const tabs = ['compiledCode', 'warnings', 'errors', 'postData']
+            const currentIndex = tabs.indexOf(this.activeTab)
+            const nextIndex = (currentIndex + change + tabs.length) % tabs.length
+            this.activeTab = tabs[nextIndex]
+            this.$nextTick(() => document.getElementById(`tab-${this.activeTab}`).focus())
+          },
+
           get leftPanelStyle() {
             if (this.windowWidth < 768) {
               return 'width: 100%'
@@ -290,6 +324,7 @@ hello('New user');`,
 
 >
     <div
+            id="compiler-input"
             :style="leftPanelStyle"
             class="bg-gray-100 my-2 md:m-2 p-4 rounded shadow min-h-[400px] flex flex-col"
     >
@@ -340,11 +375,15 @@ hello('New user');`,
                 @change="updateSelectedKeys()"
         >
             <button
+                    type="button"
                     @click="open = !open"
+                    :aria-expanded="open"
+                    aria-controls="external-scripts-options"
                     class="w-full px-4 py-2 text-sm border border-gray-300 rounded-md bg-white shadow-sm focus:outline-none flex justify-between items-center"
             >
                 <span>Select or add additional JavaScript libraries</span>
                 <svg
+                        aria-hidden="true"
                         class="w-4 h-4 text-gray-600 transform transition-transform duration-300"
                         :class="{'rotate-180': open}"
                         fill="none"
@@ -358,8 +397,12 @@ hello('New user');`,
             </button>
 
             <div
+                    id="external-scripts-options"
                     x-show="open"
+                    x-cloak
                     @click.away="open = false"
+                    role="group"
+                    aria-label="External JavaScript libraries"
                     class="absolute z-10 w-full max-h-80 overflow-y-auto mt-2 bg-white border border-gray-200 rounded-md shadow-lg"
                     style="display: none;"
             >
@@ -378,6 +421,7 @@ hello('New user');`,
 
                 <div class="flex items-center p-2 border-t border-gray-200">
                     <input
+                            aria-label="External script URL"
                             x-model="newOption"
                             @keydown.enter.stop.prevent="addCustomValue()"
                             type="text"
@@ -385,6 +429,7 @@ hello('New user');`,
                             class="flex-1 border-gray-300 rounded-md text-sm px-2 py-1 focus:outline-none focus:ring focus:ring-blue-200"
                     />
                     <button
+                            type="button"
                             @click="addCustomValue()"
                             class="ml-2 text-sm bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700"
                     >
@@ -408,8 +453,9 @@ hello('New user');`,
         </div>
 
         <div class="mb-4">
-            <p class="mb-1 font-semibold text-sm">Optimization:</p>
-            <div class="flex flex-wrap gap-x-4 gap-y-2 items-center">
+            <p id="optimization-label" class="mb-1 font-semibold text-sm">Optimization:</p>
+            <div role="radiogroup" aria-labelledby="optimization-label"
+                 class="flex flex-wrap gap-x-4 gap-y-2 items-center">
                 <label class="inline-flex items-center space-x-1">
                     <input
                             type="radio"
@@ -447,11 +493,15 @@ hello('New user');`,
 
         <div class="mb-4">
             <button
+                    type="button"
                     @click="showFormatting = !showFormatting"
+                    :aria-expanded="showFormatting"
+                    aria-controls="additional-settings"
                     class="flex items-center text-blue-600 mb-1 font-medium focus:outline-none"
             >
                 <span x-text="showFormatting ? 'Hide additional settings' : 'Show additional settings'"></span>
                 <svg
+                        aria-hidden="true"
                         class="w-4 h-4 ml-1 transform transition-transform duration-200"
                         :class="{'rotate-180': showFormatting}"
                         fill="none"
@@ -464,7 +514,9 @@ hello('New user');`,
             </button>
 
             <div
+                    id="additional-settings"
                     x-show="showFormatting"
+                    x-cloak
                     class="bg-gray-50 rounded-md mb-2 border border-gray-200 overflow-hidden"
             >
                 <!-- Formatting section -->
@@ -568,6 +620,7 @@ hello('New user');`,
                                     id="outputFileName"
                                     type="text"
                                     x-model.trim="outputFileName"
+                                    :aria-invalid="!outputFileNameValid"
                                     :class="outputFileNameValid ? 'border-gray-300' : 'border-red-500'"
                                     class="block w-full text-sm rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                                     aria-describedby="outputFileNameHelp"
@@ -586,14 +639,17 @@ hello('New user');`,
 
         <div class="mb-2 flex space-x-4">
             <button
+                    type="button"
                     @click="handleCompilerClick();"
                     :disabled="loading || !outputFileNameValid"
+                    :aria-busy="loading"
                     class="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-1 px-2 rounded w-40"
             >
                 <span x-text="loading ? 'Compiling…' : 'Compile'"></span>
             </button>
 
             <button
+                    type="button"
                     @click="window.location.reload()"
                     class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-2 rounded w-40"
             >
@@ -616,23 +672,40 @@ hello('New user');`,
                         @scroll="window.syncTextareaLineNumbersScroll && window.syncTextareaLineNumbersScroll()"
                         class="code-input"
                         placeholder="Add your code here..."
+                        spellcheck="false"
                 ></textarea>
             </div>
         </div>
     </div>
 
     <div
+            role="separator"
+            aria-label="Resize compiler panels"
+            aria-orientation="vertical"
+            aria-valuemin="30"
+            aria-valuemax="70"
+            :aria-valuenow="Math.round(leftWidth)"
+            aria-controls="compiler-input compiler-output"
+            tabindex="0"
             class="hidden md:flex items-center justify-center bg-gray-300 w-2 cursor-col-resize"
             @mousedown="startDragging"
+            @keydown.left.prevent="adjustPanelWidth(-5)"
+            @keydown.right.prevent="adjustPanelWidth(5)"
     ></div>
 
     <div
+            id="compiler-output"
             :style="rightPanelStyle"
             class="relative bg-gray-100 my-2 md:m-2 p-4 rounded shadow min-h-[400px] flex flex-col"
     >
         <div
                 class="mb-4 bg-white text-gray-800 text-sm rounded shadow p-2"
                 x-show="loading || success || error"
+                x-cloak
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                :aria-busy="loading"
         >
             <template x-if="loading">
                 <p>Compilation in progress...</p>
@@ -662,26 +735,43 @@ hello('New user');`,
             </template>
 
             <template x-if="error">
-                <p class="text-red-600">Error during compilation: <span x-text="errorMessage"></span></p>
+                <p role="alert" class="text-red-600">Error during compilation: <span x-text="errorMessage"></span></p>
             </template>
         </div>
 
-        <div class="border-b border-gray-300 flex gap-4 overflow-x-auto whitespace-nowrap">
+        <div role="tablist" aria-label="Compilation results"
+             class="border-b border-gray-300 flex gap-4 overflow-x-auto whitespace-nowrap">
             <button
+                    type="button"
+                    id="tab-compiledCode"
+                    role="tab"
+                    aria-controls="panel-compiledCode"
+                    :aria-selected="activeTab === 'compiledCode'"
+                    :tabindex="activeTab === 'compiledCode' ? 0 : -1"
                     class="shrink-0 px-2 py-1 border-b-2"
                     :class="activeTab === 'compiledCode'
               ? 'border-blue-500 text-blue-500'
               : 'border-transparent text-gray-600'"
                     @click="activeTab = 'compiledCode'"
+                    @keydown.left.prevent="selectAdjacentTab(-1)"
+                    @keydown.right.prevent="selectAdjacentTab(1)"
             >
                 Compiled Code
             </button>
             <button
+                    type="button"
+                    id="tab-warnings"
+                    role="tab"
+                    aria-controls="panel-warnings"
+                    :aria-selected="activeTab === 'warnings'"
+                    :tabindex="activeTab === 'warnings' ? 0 : -1"
                     class="shrink-0 px-2 py-1 border-b-2"
                     :class="activeTab === 'warnings'
               ? 'border-blue-500 text-blue-500'
               : 'border-transparent text-gray-600'"
                     @click="activeTab = 'warnings'"
+                    @keydown.left.prevent="selectAdjacentTab(-1)"
+                    @keydown.right.prevent="selectAdjacentTab(1)"
             >
                 Warnings
                 <span x-show="$store.compiler.warnings.length > 0" class="text-xs font-bold text-red-600">(
@@ -689,11 +779,19 @@ hello('New user');`,
                 )</span>
             </button>
             <button
+                    type="button"
+                    id="tab-errors"
+                    role="tab"
+                    aria-controls="panel-errors"
+                    :aria-selected="activeTab === 'errors'"
+                    :tabindex="activeTab === 'errors' ? 0 : -1"
                     class="shrink-0 px-2 py-1 border-b-2"
                     :class="activeTab === 'errors'
               ? 'border-blue-500 text-blue-500'
               : 'border-transparent text-gray-600'"
                     @click="activeTab = 'errors'"
+                    @keydown.left.prevent="selectAdjacentTab(-1)"
+                    @keydown.right.prevent="selectAdjacentTab(1)"
             >
                 Errors
                 <span x-show="$store.compiler.errors.length > 0" class="text-xs font-bold text-red-600">(
@@ -701,25 +799,37 @@ hello('New user');`,
                 )</span>
             </button>
             <button
+                    type="button"
+                    id="tab-postData"
+                    role="tab"
+                    aria-controls="panel-postData"
+                    :aria-selected="activeTab === 'postData'"
+                    :tabindex="activeTab === 'postData' ? 0 : -1"
                     class="shrink-0 px-2 py-1 border-b-2"
                     :class="activeTab === 'postData'
               ? 'border-blue-500 text-blue-500'
               : 'border-transparent text-gray-600'"
                     @click="activeTab = 'postData'"
+                    @keydown.left.prevent="selectAdjacentTab(-1)"
+                    @keydown.right.prevent="selectAdjacentTab(1)"
             >
                 POST data
             </button>
         </div>
 
         <div class="flex-1 overflow-auto p-1">
-            <div x-show="activeTab === 'compiledCode'" class="space-y-1 max-h-80">
+            <div id="panel-compiledCode" role="tabpanel" aria-labelledby="tab-compiledCode" x-cloak
+                 x-show="activeTab === 'compiledCode'" class="space-y-1 max-h-80">
                 <div class="flex justify-end">
                     <button
+                            type="button"
                             @click="copyCompiledCode()"
                             :disabled="!$store.compiler.compiledCode"
                             class="bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs px-2 py-1 rounded shadow hover:bg-green-600 transition"
                             x-text="copyLabel"
                     ></button>
+                    <span class="sr-only" aria-live="polite"
+                          x-text="copyLabel === 'Copy code to the clipboard' ? '' : copyLabel"></span>
                 </div>
 
                 <pre class="text-xs bg-gray-200 p-2 rounded overflow-auto">
@@ -727,7 +837,8 @@ hello('New user');`,
               </pre>
             </div>
 
-            <div x-show="activeTab === 'warnings'" class="space-y-1 max-h-80">
+            <div id="panel-warnings" role="tabpanel" aria-labelledby="tab-warnings" x-cloak
+                 x-show="activeTab === 'warnings'" class="space-y-1 max-h-80">
                 <pre class="text-xs bg-gray-200 p-2 rounded overflow-auto">
                     <template x-if="$store.compiler.warnings.length === 0">
                         <p class="text-gray-500 text-xs p-2">No warnings to display.</p>
@@ -738,7 +849,8 @@ hello('New user');`,
                 </pre>
             </div>
 
-            <div x-show="activeTab === 'errors'" class="space-y-1 max-h-80">
+            <div id="panel-errors" role="tabpanel" aria-labelledby="tab-errors" x-cloak
+                 x-show="activeTab === 'errors'" class="space-y-1 max-h-80">
                <pre class="text-xs bg-gray-200 p-2 rounded overflow-auto">
                     <template x-if="$store.compiler.errors.length === 0">
                         <p class="text-gray-500 text-xs p-2">No errors to display.</p>
@@ -749,7 +861,8 @@ hello('New user');`,
                 </pre>
             </div>
 
-            <div x-show="activeTab === 'postData'" class="space-y-1 max-h-80">
+            <div id="panel-postData" role="tabpanel" aria-labelledby="tab-postData" x-cloak
+                 x-show="activeTab === 'postData'" class="space-y-1 max-h-80">
                 <pre class="text-xs bg-gray-200 p-2 rounded overflow-auto">
                     <code x-text="JSON.stringify($store.compiler.postData, null, 2)"></code>
               </pre>
@@ -758,14 +871,38 @@ hello('New user');`,
     </div>
 </main>
 
-<footer class="bg-blue-600 text-white p-4 text-center" x-data="{ isModalOpen: false }">
+<footer class="bg-blue-600 text-white p-4 text-center"
+        x-data="{
+            isModalOpen: false,
+            openModal() {
+                this.isModalOpen = true;
+                this.$nextTick(() => this.$refs.termsClose.focus());
+            },
+            closeModal() {
+                this.isModalOpen = false;
+                this.$nextTick(() => document.getElementById('terms-link').focus());
+            },
+            trapModalFocus(event) {
+                const focusable = this.$refs.termsDialog.querySelectorAll(`button, [href], [tabindex]:not([tabindex='-1'])`);
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        }">
     ©2025 Treblereel -
-    <a href="#" id="terms-link" @click.prevent="isModalOpen = true"
+    <a href="#" id="terms-link" @click.prevent="openModal()"
        class="text-blue-300 hover:text-blue-200 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-400">Terms
         of Service</a> -
     <span>
             Developed by
             <a href="https://github.com/treblereel" target="_blank"
+               rel="noopener noreferrer"
                class="text-blue-300 hover:text-blue-200 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-400">
                 treblereel
             </a>
@@ -774,6 +911,7 @@ hello('New user');`,
 
     <div
             x-show="isModalOpen"
+            x-cloak
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0 scale-90"
             x-transition:enter-end="opacity-100 scale-100"
@@ -781,23 +919,33 @@ hello('New user');`,
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-90"
             class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-            @keydown.escape.window="isModalOpen = false"
+            @keydown.escape.window="closeModal()"
     >
         <div
+                x-ref="termsDialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="terms-title"
+                tabindex="-1"
                 class="bg-white rounded-lg shadow-lg max-w-4xl w-11/12 p-6 relative text-sm overflow-y-auto max-h-screen"
-                @click.away="isModalOpen = false"
+                @click.away="closeModal()"
+                @keydown.tab="trapModalFocus($event)"
         >
             <button
-                    @click="isModalOpen = false"
+                    x-ref="termsClose"
+                    type="button"
+                    @click="closeModal()"
+                    aria-label="Close terms of service"
                     class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 focus:outline-none"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                     aria-hidden="true"
                      stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
 
-            <h2 class="text-xl font-semibold mb-4">Terms of Service</h2>
+            <h2 id="terms-title" class="text-xl font-semibold mb-4">Terms of Service</h2>
             <p class="text-gray-700 mb-4">
                 Welcome to Js-compressor! By accessing or using our Service, you agree to these Terms of Service. Please
                 read them carefully before using the Service.

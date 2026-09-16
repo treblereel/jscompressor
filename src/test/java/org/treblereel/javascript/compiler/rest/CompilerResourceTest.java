@@ -499,6 +499,24 @@ public class CompilerResourceTest {
   }
 
   @Test
+  public void testIndexIncludesKeyboardAndScreenReaderSemantics() {
+    String index = given()
+        .when().get("/")
+        .then()
+        .statusCode(200)
+        .extract().asString();
+
+    assertTrue(index.contains("href=\"#main-content\""));
+    assertTrue(index.contains("role=\"separator\""));
+    assertTrue(index.contains("role=\"tablist\""));
+    assertTrue(index.contains("role=\"tabpanel\""));
+    assertTrue(index.contains("role=\"status\""));
+    assertTrue(index.contains("role=\"dialog\""));
+    assertTrue(index.contains("aria-live=\"polite\""));
+    assertTrue(index.contains("aria-label=\"Close terms of service\""));
+  }
+
+  @Test
   public void testBulkhead() throws InterruptedException {
     CompileRequest compileRequest = new CompileRequest();
     compileRequest.setPayload("function hello(name) {\n    alert('Hello, ' + name);\n}\nhello('New user');");
