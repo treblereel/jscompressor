@@ -22,6 +22,15 @@ A web application serving as both a user-friendly web interface and a REST API f
 2. Run `mvn clean package`
 3. Run `java -jar ./target/quarkus-app/quarkus-run.jar`
 
+The repository contains prebuilt, self-hosted UI assets, so Java and container builds do not require Node.js.
+When changing UI styles or upgrading Alpine.js/Tailwind CSS, install Node.js 20 or newer and regenerate the
+committed assets with:
+
+```shell
+npm ci
+npm run build
+```
+
 #### Build Native Image
 1. Clone the repository
 2. Run `mvn clean package -Pnative`

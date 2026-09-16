@@ -41,6 +41,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -514,6 +515,25 @@ public class CompilerResourceTest {
     assertTrue(index.contains("role=\"dialog\""));
     assertTrue(index.contains("aria-live=\"polite\""));
     assertTrue(index.contains("aria-label=\"Close terms of service\""));
+  }
+
+  @Test
+  public void testIndexUsesSelfHostedFrontendAssets() {
+    String index = given()
+        .when().get("/")
+        .then()
+        .statusCode(200)
+        .extract().asString();
+
+    assertTrue(index.contains("href=\"assets/app.css\""));
+    assertTrue(index.contains("src=\"assets/app.js\""));
+    assertTrue(index.contains("src=\"assets/alpine.min.js\""));
+    assertFalse(index.contains("cdn.tailwindcss.com"));
+    assertFalse(index.contains("cdn.jsdelivr.net"));
+
+    given().when().get("/assets/app.css").then().statusCode(200);
+    given().when().get("/assets/app.js").then().statusCode(200);
+    given().when().get("/assets/alpine.min.js").then().statusCode(200);
   }
 
   @Test

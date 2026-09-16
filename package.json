@@ -1,0 +1,14 @@
+{
+  "name": "jscompressor-ui",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:css && npm run build:vendor",
+    "build:css": "tailwindcss -i ./src/main/frontend/styles.css -o ./src/main/resources/META-INF/resources/assets/app.css --minify",
+    "build:vendor": "cp ./node_modules/alpinejs/dist/cdn.min.js ./src/main/resources/META-INF/resources/assets/alpine.min.js"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "alpinejs": "3.17.3",
+    "tailwindcss": "4.3.3"
+  }
+}
