@@ -55,6 +55,19 @@ npm run build
 3. Run `docker build -f src/main/docker/Dockerfile.native -t quarkus/jscompressor .`
 4. Run `docker run -d -v /home/${username}/${volumes}:/volume:Z -p 8080:8080 localhost/quarkus/jscompressor:latest`
 
+### Publish the native image
+
+The `Publish native image` GitHub Actions workflow publishes `linux/amd64` images to
+`docker.io/treblereel/jscompressor-native`. Configure these repository secrets before running it:
+
+- `DOCKERHUB_USERNAME` - Docker Hub username.
+- `DOCKERHUB_TOKEN` - Docker Hub access token with permission to push the repository.
+
+Pushing a tag matching `v*` or `r*` publishes the Git tag, `sha-<commit>`, and `latest` image tags.
+The workflow can also be started manually with a custom image tag and an optional `latest` update.
+It builds the native executable in the Quarkus Linux builder container, runs the native integration test,
+and smoke-tests the final container before logging in and pushing it.
+
 Note: You should be familiar with such topics like Docker root/rootless containers, selinux and such topics. For
 instance, if you get `permission denied` error, you should check the selinux context of the volume. That is why I prefer 
 rootless Podman containers, that configure the context automatically.
