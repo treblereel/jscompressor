@@ -71,6 +71,27 @@ public class FileCacheTest {
   }
 
   @Test
+  public void putEvictsMultipleOldestFilesWhenRequired() throws Exception {
+    Path cacheDir = tempDir.resolve("cache");
+    Files.createDirectories(cacheDir);
+    FileCache cache = createCache(cacheDir, 10);
+
+    cache.put("oldest", bytes("123"));
+    cache.put("older", bytes("456"));
+    cache.put("newest", bytes("789"));
+    Files.setLastModifiedTime(cacheDir.resolve("oldest"), FileTime.fromMillis(1000));
+    Files.setLastModifiedTime(cacheDir.resolve("older"), FileTime.fromMillis(2000));
+    Files.setLastModifiedTime(cacheDir.resolve("newest"), FileTime.fromMillis(3000));
+
+    cache.put("fresh", bytes("abcdefg"));
+
+    assertFalse(Files.exists(cacheDir.resolve("oldest")));
+    assertFalse(Files.exists(cacheDir.resolve("older")));
+    assertArrayEquals(bytes("789"), cache.get("newest"));
+    assertArrayEquals(bytes("abcdefg"), cache.get("fresh"));
+  }
+
+  @Test
   public void putRejectsFilesLargerThanCacheMaxSizeWithoutEvicting() throws Exception {
     Path cacheDir = tempDir.resolve("cache");
     Files.createDirectories(cacheDir);

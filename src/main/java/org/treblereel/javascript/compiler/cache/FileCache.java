@@ -26,6 +26,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -91,51 +92,35 @@ public class FileCache {
   }
 
   private void evict(byte[] content) throws Exception {
-    while (!checkSpace(content)) {
-      try {
-        File file = findOldestFile();
-        if (file != null) {
-          Files.deleteIfExists(file.toPath());
-        } else {
-          break;
-        }
-      } catch (Exception e) {
-        throw new Exception(e);
-      }
-    }
-  }
-
-  private boolean checkSpace(byte[] content) throws Exception {
     Path path = cacheDirectory();
-    if (!Files.exists(path)) {
-      throw new Exception("Cache location does not exist: " + serverConfig.cacheLocation());
+    if (!Files.isDirectory(path)) {
+      throw new Exception("Cache location is not a directory: " + serverConfig.cacheLocation());
     }
 
     File[] files = path.toFile().listFiles();
     if (files == null) {
       throw new Exception("Cache location is not readable: " + serverConfig.cacheLocation());
     }
-    long totalSize = Arrays.stream(files).filter(File::isFile).mapToLong(File::length).sum();
-    return totalSize + content.length <= serverConfig.cacheMaxSize();
-  }
 
-  private File findOldestFile() throws Exception {
-    File directory = cacheDirectory().toFile();
-
-    if (!directory.isDirectory()) {
-      throw new Exception("Cache location is not a directory: " + serverConfig.cacheLocation());
-    }
-
-    File[] files = directory.listFiles();
-
-    if (files == null || files.length == 0) {
-      return null;
-    }
-
-    return Arrays.stream(files)
+    List<File> cachedFiles = Arrays.stream(files)
         .filter(File::isFile)
-        .min(Comparator.comparingLong(File::lastModified))
-        .orElse(null);
+        .sorted(Comparator.comparingLong(File::lastModified))
+        .toList();
+    long totalSize = cachedFiles.stream().mapToLong(File::length).sum();
+
+    for (File file : cachedFiles) {
+      if (totalSize + content.length <= serverConfig.cacheMaxSize()) {
+        return;
+      }
+      long fileSize = file.length();
+      if (Files.deleteIfExists(file.toPath())) {
+        totalSize -= fileSize;
+      }
+    }
+
+    if (totalSize + content.length > serverConfig.cacheMaxSize()) {
+      throw new Exception("Unable to free enough cache space");
+    }
   }
 
   private Path resolveCachePath(String filename) throws Exception {
