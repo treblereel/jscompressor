@@ -67,6 +67,7 @@ import org.treblereel.javascript.compiler.domain.ErrorResponse;
 import org.treblereel.javascript.compiler.domain.Statistics;
 import org.treblereel.javascript.compiler.downloader.FileDownloader;
 import org.treblereel.javascript.compiler.externs.ExternsProcessor;
+import org.treblereel.javascript.compiler.metrics.CompilationMetrics;
 import org.treblereel.javascript.compiler.validation.ValidFileName;
 
 @Path("/compile")
@@ -83,6 +84,8 @@ public class CompilerResource {
   @Inject FileCache cache;
 
   @Inject ServerConfig serverConfig;
+
+  @Inject CompilationMetrics compilationMetrics;
 
   @PostConstruct
   public void init() {
@@ -157,6 +160,13 @@ public class CompilerResource {
           }
   )
   public Response compile(@NotNull @Valid CompileRequest request) {
+    try (CompilationMetrics.Observation observation =
+             compilationMetrics.start(request.getPayload().length())) {
+      return compile(request, observation);
+    }
+  }
+
+  private Response compile(CompileRequest request, CompilationMetrics.Observation observation) {
     logger.info("received request from " + context.request().remoteAddress().host());
 
     long start = System.currentTimeMillis();
@@ -206,6 +216,7 @@ public class CompilerResource {
         sources.add(file);
         externalSourceSize += file.getCode().length();
       } catch (IOException e) {
+        observation.outcome("download_error");
         return Response.status(Response.Status.BAD_REQUEST)
             .entity(new ErrorResponse(
                 Response.Status.BAD_REQUEST.getStatusCode(),
@@ -253,6 +264,7 @@ public class CompilerResource {
       try {
         hash = cache.put(hash, compiler.toSource().getBytes(StandardCharsets.UTF_8));
       } catch (Exception e) {
+        observation.outcome("cache_error");
         return Response.status(Response.Status.BAD_REQUEST)
             .entity(new ErrorResponse(
                 Response.Status.BAD_REQUEST.getStatusCode(),
@@ -278,6 +290,8 @@ public class CompilerResource {
     stats.setCompiledSize(
         response.getCompiledCode() != null ? response.getCompiledCode().length() : 0);
     response.setStatistics(stats);
+    observation.outcome(result.success ? "success" : "compiler_error");
+    observation.sizes(stats.getOriginalSize(), stats.getCompiledSize());
 
     logger.info(
         "compilation took "

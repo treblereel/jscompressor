@@ -55,13 +55,18 @@ jobs:
           trap 'docker logs jscompressor-native-test; docker rm --force jscompressor-native-test' EXIT
 
           for attempt in {1..30}; do
-            if curl --fail --silent --show-error http://127.0.0.1:18080/q/health/ready; then
-              exit 0
+            if curl --fail --silent --show-error http://127.0.0.1:18080/health/ready; then
+              ready=true
+              break
             fi
             sleep 1
           done
 
-          exit 1
+          test "${ready:-false}" = true
+          curl --fail --silent --show-error \
+            --output /tmp/jscompressor-metrics \
+            http://127.0.0.1:18080/metrics
+          grep --quiet jscompressor_cache_usage_bytes /tmp/jscompressor-metrics
 
       - name: Scan native image for vulnerabilities
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0

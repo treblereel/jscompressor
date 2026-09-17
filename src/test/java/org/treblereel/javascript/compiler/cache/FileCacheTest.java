@@ -69,6 +69,9 @@ public class FileCacheTest {
     assertFalse(Files.exists(cacheDir.resolve("old")));
     assertArrayEquals(bytes("5678"), cache.get("newer"));
     assertArrayEquals(bytes("abcd"), cache.get("fresh"));
+    assertEquals(8, cache.currentSize());
+    assertEquals(2, cache.currentFiles());
+    assertEquals(1, cache.evictions());
   }
 
   @Test
@@ -90,6 +93,9 @@ public class FileCacheTest {
     assertFalse(Files.exists(cacheDir.resolve("older")));
     assertArrayEquals(bytes("789"), cache.get("newest"));
     assertArrayEquals(bytes("abcdefg"), cache.get("fresh"));
+    assertEquals(10, cache.currentSize());
+    assertEquals(2, cache.currentFiles());
+    assertEquals(2, cache.evictions());
   }
 
   @Test
@@ -114,6 +120,8 @@ public class FileCacheTest {
     assertEquals("same-id", cache.put("same-id", bytes("content")));
     assertEquals("same-id", cache.put("same-id", bytes("content")));
     assertArrayEquals(bytes("content"), cache.get("same-id"));
+    assertEquals(7, cache.currentSize());
+    assertEquals(1, cache.currentFiles());
   }
 
   @Test

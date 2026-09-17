@@ -27,6 +27,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -36,6 +37,10 @@ import org.treblereel.javascript.compiler.config.ServerConfig;
 
 @ApplicationScoped
 public class FileCache {
+
+  private final AtomicLong currentSize = new AtomicLong();
+  private final AtomicLong currentFiles = new AtomicLong();
+  private final AtomicLong evictions = new AtomicLong();
 
   @Inject
   ServerConfig serverConfig;
@@ -50,6 +55,7 @@ public class FileCache {
     if (!Files.isDirectory(cacheDirectory())) {
       throw new RuntimeException("Cache location is not a directory: " + serverConfig.cacheLocation());
     }
+    refreshUsage();
   }
 
   public synchronized String put(String filename, byte[] content) throws Exception {
@@ -75,6 +81,8 @@ public class FileCache {
 
       evict(content);
       writeFileToCache(path, content);
+      currentSize.addAndGet(content.length);
+      currentFiles.incrementAndGet();
       return candidate;
     }
   }
@@ -129,6 +137,9 @@ public class FileCache {
       long fileSize = file.length();
       if (Files.deleteIfExists(file.toPath())) {
         totalSize -= fileSize;
+        currentSize.addAndGet(-fileSize);
+        currentFiles.decrementAndGet();
+        evictions.incrementAndGet();
       }
     }
 
@@ -159,5 +170,26 @@ public class FileCache {
 
   private Path cacheDirectory() {
     return Paths.get(serverConfig.cacheLocation()).toAbsolutePath().normalize();
+  }
+
+  private void refreshUsage() {
+    File[] files = cacheDirectory().toFile().listFiles(File::isFile);
+    if (files == null) {
+      throw new RuntimeException("Cache location is not readable: " + serverConfig.cacheLocation());
+    }
+    currentSize.set(Arrays.stream(files).mapToLong(File::length).sum());
+    currentFiles.set(files.length);
+  }
+
+  public long currentSize() {
+    return currentSize.get();
+  }
+
+  public long currentFiles() {
+    return currentFiles.get();
+  }
+
+  public long evictions() {
+    return evictions.get();
   }
 }

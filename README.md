@@ -113,6 +113,12 @@ direct peer is not trusted.
 
 The application provides an OpenAPI specification at `openapi.yaml`
 
+### Metrics
+
+Prometheus metrics are available at `/metrics`. Quarkus provides HTTP request duration and status metrics;
+application metrics use the `jscompressor_` prefix and cover compilation outcomes and duration, active
+compilations, source and output sizes, cache usage, cached files, and cache evictions.
+
 ### License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
