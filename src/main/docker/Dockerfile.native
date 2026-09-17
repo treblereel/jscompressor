@@ -3,7 +3,7 @@
 #
 # Before building the container image run:
 #
-# mvn package -Dnative
+# mvn package -Pnative
 #
 # Then, build the image with:
 #
@@ -14,11 +14,12 @@
 # docker run -i --rm -p 8080:8080 quarkus/jscompressor
 #
 ###
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.1
-WORKDIR /work/
-RUN chown 1001 /work \
-    && chmod "g+rwX" /work \
-    && chown 1001:root /work
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:7b8e25a1b56ca4d00219198f3b5b51a3e1693a5c4f5369c5e190d7d6cb3f980e
+
+WORKDIR /work
+RUN mkdir -p /volume \
+    && chown 1001:root /volume \
+    && chmod "g+rwX" /volume
 COPY --chown=1001:root target/*-runner /work/application
 
 EXPOSE 8080
@@ -28,4 +29,4 @@ ENV CACHE_DIR=/volume
 
 VOLUME /volume
 
-ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]
+ENTRYPOINT ["/work/application", "-Dquarkus.http.host=0.0.0.0"]

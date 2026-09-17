@@ -70,7 +70,8 @@ The `Publish native image` GitHub Actions workflow publishes `linux/amd64` image
 Pushing a tag matching `v*` or `r*` publishes the Git tag, `sha-<commit>`, and `latest` image tags.
 The workflow can also be started manually with a custom image tag and an optional `latest` update.
 It builds the native executable in the Quarkus Linux builder container, runs the native integration test,
-and smoke-tests the final container before logging in and pushing it.
+smoke-tests the final container, and rejects fixable high or critical vulnerabilities before logging in and
+pushing it. Published images include SBOM and build provenance attestations.
 
 Note: You should be familiar with such topics like Docker root/rootless containers, selinux and such topics. For
 instance, if you get `permission denied` error, you should check the selinux context of the volume. That is why I prefer 
