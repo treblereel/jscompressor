@@ -21,59 +21,49 @@ import java.util.Map;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
 
 @QuarkusTest
-@TestProfile(RateLimitFilterTest.LimitedProfile.class)
-public class RateLimitFilterTest {
+@TestProfile(RateLimitTrustedProxyTest.TrustedProxyProfile.class)
+public class RateLimitTrustedProxyTest {
 
   @Test
-  public void enforcesSharedLimitForCompileAndDownloadOnly() {
-    given()
-        .when().get("/openapi.yaml")
-        .then().statusCode(200);
+  public void appliesIndependentLimitsToForwardedClientAddresses() {
+    assertMissingDownload("198.51.100.10", 404);
+    assertMissingDownload("198.51.100.11", 404);
 
     given()
         .header("X-Forwarded-For", "198.51.100.10")
-        .contentType(ContentType.JSON)
-        .body("{\"payload\":\"alert(1);\",\"outputFileName\":\"default.js\"}")
-        .when().post("/compile")
-        .then().statusCode(200);
+        .when().get("/compile/missing")
+        .then().statusCode(429)
+        .header("Retry-After", is("60"));
 
     given()
         .header("X-Forwarded-For", "198.51.100.11")
-        .contentType(ContentType.JSON)
-        .body("{\"payload\":\"alert(1);\",\"outputFileName\":\"default.js\"}")
-        .when().post("/compile")
-        .then().statusCode(429)
-        .header("Retry-After", is("60"))
-        .contentType(ContentType.JSON)
-        .body("status", is(429))
-        .body("error", is("Rate limit exceeded. Please try again later."));
-
-    given()
         .when().get("/compile/missing")
         .then().statusCode(429)
-        .contentType(ContentType.JSON)
-        .body("status", is(429))
-        .body("error", is("Rate limit exceeded. Please try again later."));
-
-    given()
-        .when().get("/openapi.yaml")
-        .then().statusCode(200);
+        .header("Retry-After", is("60"));
   }
 
-  public static class LimitedProfile implements QuarkusTestProfile {
+  private void assertMissingDownload(String clientAddress, int statusCode) {
+    given()
+        .header("X-Forwarded-For", clientAddress)
+        .when().get("/compile/missing")
+        .then().statusCode(statusCode);
+  }
+
+  public static class TrustedProxyProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
       return Map.of(
           "server.rate-limit-enabled", "true",
-          "server.rate-limit-requests-per-minute", "1");
+          "server.rate-limit-requests-per-minute", "1",
+          "quarkus.http.proxy.proxy-address-forwarding", "true",
+          "quarkus.http.proxy.trusted-proxies", "127.0.0.0/8,::1");
     }
   }
 }

@@ -90,12 +90,19 @@ The application can be configured using the following environment variables:
 - `MAX_CACHE_DIR_SIZE` - Sets the maximum size of the cache directory. Default is 1073741824 bytes (1GB). Once limit is reached, the oldest files will be deleted.
 - `RATE_LIMIT_ENABLED` - Enables per-client REST rate limiting for `/compile` endpoints. Default is `true`.
 - `RATE_LIMIT_REQUESTS_PER_MINUTE` - Sets the maximum number of `/compile` requests per client per minute. Default is 120.
+- `PROXY_ADDRESS_FORWARDING` - Trusts `X-Forwarded-*` request information when set to `true`. Default is `false`.
+- `TRUSTED_PROXIES` - Comma-separated proxy IP addresses or CIDR ranges allowed to provide forwarded request information. Default is `127.0.0.1`.
 
 All of the above can be set in the `application.properties` file or provided as environment variables to the docker container.
 
 Server defaults are defined in `src/main/resources/application.properties`. The container image uses these defaults, except for `CACHE_DIR=/volume`.
 
 The HTTP server (`quarkus.http.limits.max-body-size`) and any reverse proxy may impose a lower body limit. Configure those separately when increasing the application limits; responses rejected by those layers may use their own error format.
+
+When running behind a reverse proxy, set `PROXY_ADDRESS_FORWARDING=true` and configure `TRUSTED_PROXIES`
+with the proxy's address or network. The proxy must replace client-provided `X-Forwarded-*` headers rather
+than append to untrusted values. Forwarded headers remain ignored when proxy forwarding is disabled or the
+direct peer is not trusted.
 
 ### OpenAPI
 

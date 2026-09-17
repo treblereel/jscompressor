@@ -51,6 +51,7 @@ import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.headers.Header;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -135,6 +136,11 @@ public class CompilerResource {
               @APIResponse(
                       responseCode = "429",
                       description  = "Too many requests",
+                      headers      = @Header(
+                              name        = "Retry-After",
+                              description = "Seconds before retrying the request",
+                              schema      = @Schema(type = SchemaType.INTEGER)
+                      ),
                       content      = @Content(
                               mediaType = "application/json",
                               schema    = @Schema(implementation = ErrorResponse.class)

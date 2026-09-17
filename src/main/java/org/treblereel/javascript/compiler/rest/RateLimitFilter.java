@@ -36,6 +36,8 @@ import org.treblereel.javascript.compiler.domain.ErrorResponse;
 @Priority(Priorities.AUTHENTICATION)
 public class RateLimitFilter implements ContainerRequestFilter {
 
+  private static final String RETRY_AFTER_SECONDS = "60";
+
   @Inject
   RateLimiter rateLimiter;
 
@@ -52,6 +54,7 @@ public class RateLimitFilter implements ContainerRequestFilter {
     }
     requestContext.abortWith(
             Response.status(Response.Status.TOO_MANY_REQUESTS)
+                    .header("Retry-After", RETRY_AFTER_SECONDS)
                     .entity(new ErrorResponse(
                         Response.Status.TOO_MANY_REQUESTS.getStatusCode(),
                         "Rate limit exceeded. Please try again later."))
