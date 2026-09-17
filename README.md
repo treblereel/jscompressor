@@ -39,20 +39,25 @@ npm run build
 
 #### Docker/Podman
 
-# The native image is available on Docker Hub
-`https://hub.docker.com/repository/docker/treblereel/jscompressor/general`
+The native image is available on [Docker Hub](https://hub.docker.com/r/treblereel/jscompressor).
 
-## JVM based
-1. Clone the repository
-2. Run `mvn clean package`
-3. Run `docker build -f src/main/docker/Dockerfile.jvm -t quarkus/jscompressor .`
-4. Run `docker run -d -v /home/${username}/${volumes}:/volume:Z -p 8080:8080 localhost/quarkus/jscompressor:latest`
+Run the published image:
 
-## Native based
-1. Clone the repository
-2. Run `mvn clean package -Pnative`
-3. Run `docker build -f src/main/docker/Dockerfile.native -t quarkus/jscompressor .`
-4. Run `docker run -d -v /home/${username}/${volumes}:/volume:Z -p 8080:8080 localhost/quarkus/jscompressor:latest`
+```shell
+docker pull treblereel/jscompressor:latest
+docker run --detach --name jscompressor \
+  --publish 8080:8080 \
+  --volume jscompressor-cache:/volume \
+  treblereel/jscompressor:latest
+```
+
+Build the native container locally:
+
+```shell
+mvn clean package -Pnative
+docker build --file src/main/docker/Dockerfile.native --tag jscompressor .
+docker run --rm --publish 8080:8080 --volume jscompressor-cache:/volume jscompressor
+```
 
 ### Publish the native image
 
@@ -88,7 +93,7 @@ The application can be configured using the following environment variables:
 
 All of the above can be set in the `application.properties` file or provided as environment variables to the docker container.
 
-Server defaults are defined in `src/main/resources/application.properties`. Both container images use these defaults, except for `CACHE_DIR=/volume`.
+Server defaults are defined in `src/main/resources/application.properties`. The container image uses these defaults, except for `CACHE_DIR=/volume`.
 
 The HTTP server (`quarkus.http.limits.max-body-size`) and any reverse proxy may impose a lower body limit. Configure those separately when increasing the application limits; responses rejected by those layers may use their own error format.
 
