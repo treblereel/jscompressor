@@ -34,7 +34,7 @@ public class ExternalScripts {
 
   @MaxExternalUrls
   @Schema(
-          description = "List of external scripts to be included in the compilation.",
+          description = "List of public HTTP or HTTPS scripts to be included in the compilation.",
           type = SchemaType.ARRAY,
           implementation = String.class)
   private List<@NotBlank String> urls;

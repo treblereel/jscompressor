@@ -100,6 +100,10 @@ Server defaults are defined in `src/main/resources/application.properties`. The 
 
 The HTTP server (`quarkus.http.limits.max-body-size`) and any reverse proxy may impose a lower body limit. Configure those separately when increasing the application limits; responses rejected by those layers may use their own error format.
 
+External scripts must use public HTTP or HTTPS URLs. Loopback, private, link-local, multicast, and reserved
+addresses are rejected. Every redirect is validated again, and connections are pinned to the validated DNS
+address to prevent DNS rebinding.
+
 When running behind a reverse proxy, set `PROXY_ADDRESS_FORWARDING=true` and configure `TRUSTED_PROXIES`
 with the proxy's address or network. The proxy must replace client-provided `X-Forwarded-*` headers rather
 than append to untrusted values. Forwarded headers remain ignored when proxy forwarding is disabled or the

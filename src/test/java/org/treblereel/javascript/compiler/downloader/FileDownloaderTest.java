@@ -17,11 +17,21 @@
 package org.treblereel.javascript.compiler.downloader;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.RequestOptions;
 import org.junit.jupiter.api.Test;
 import org.treblereel.javascript.compiler.config.ServerConfig;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FileDownloaderTest {
 
@@ -61,10 +71,112 @@ public class FileDownloaderTest {
     assertThrows(IOException.class, () -> downloader.downloadFileToTemp("https://user@example.com/test.js"));
   }
 
+  @Test
+  public void rejectsNonPublicReservedAddresses() {
+    FileDownloader downloader = createDownloader();
+
+    assertThrows(IOException.class, () -> downloader.downloadFileToTemp("http://100.64.0.1/test.js"));
+    assertThrows(IOException.class, () -> downloader.downloadFileToTemp("http://192.0.2.1/test.js"));
+    assertThrows(IOException.class, () -> downloader.downloadFileToTemp("http://198.18.0.1/test.js"));
+    assertThrows(IOException.class, () -> downloader.downloadFileToTemp("http://[2001:db8::1]/test.js"));
+  }
+
+  @Test
+  public void pinsConnectionToValidatedAddress() throws Exception {
+    FileDownloader downloader = createDownloader();
+    InetAddress address = InetAddress.getByAddress(new byte[]{8, 8, 8, 8});
+
+    RequestOptions options = downloader.createRequestOptions(
+        new URI("https://cdn.example.com/scripts/app.js?version=1"), address);
+
+    assertEquals("cdn.example.com", options.getHost());
+    assertEquals("8.8.8.8", options.getServer().hostAddress());
+    assertEquals(443, options.getServer().port());
+    assertEquals("/scripts/app.js?version=1", options.getURI());
+    assertTrue(options.isSsl());
+    assertFalse(options.getFollowRedirects());
+  }
+
+  @Test
+  public void downloadsFromValidatedAddressAndEnforcesStreamingLimit() throws Exception {
+    Vertx vertx = Vertx.vertx();
+    HttpServer server = await(vertx.createHttpServer()
+        .requestHandler(request -> {
+          String body = request.path().equals("/large") ? "x".repeat(2048) : "const external = true;";
+          request.response().end(body);
+        })
+        .listen(0, "127.0.0.1"));
+    FileDownloader downloader = createInitializedDownloader(vertx);
+    InetAddress address = InetAddress.getByName("127.0.0.1");
+
+    try {
+      FileDownloader.DownloadResponse response = downloader.executeRequest(
+          new URI("http://cdn.example.com:" + server.actualPort() + "/small"), address);
+
+      assertEquals(200, response.statusCode());
+      assertEquals("const external = true;", response.body());
+      assertThrows(
+          IOException.class,
+          () -> downloader.executeRequest(
+              new URI("http://cdn.example.com:" + server.actualPort() + "/large"), address));
+    } finally {
+      downloader.close();
+      await(server.close());
+      await(vertx.close());
+    }
+  }
+
+  @Test
+  public void revalidatesRedirectTargets() throws Exception {
+    Vertx vertx = Vertx.vertx();
+    HttpServer server = await(vertx.createHttpServer()
+        .requestHandler(request -> request.response()
+            .setStatusCode(302)
+            .putHeader("Location", "http://127.0.0.1/internal.js")
+            .end())
+        .listen(0, "127.0.0.1"));
+    InetAddress address = InetAddress.getByName("127.0.0.1");
+    FileDownloader downloader = new FileDownloader() {
+      @Override
+      InetAddress[] resolveAllowedAddresses(URI uri) throws IOException {
+        if (uri.getHost().equals("cdn.example.com")) {
+          return new InetAddress[]{address};
+        }
+        return super.resolveAllowedAddresses(uri);
+      }
+    };
+    downloader.serverConfig = new TestServerConfig();
+    downloader.vertx = vertx;
+    downloader.init();
+
+    try {
+      IOException exception = assertThrows(
+          IOException.class,
+          () -> downloader.downloadFileToTemp(
+              "http://cdn.example.com:" + server.actualPort() + "/redirect"));
+      assertTrue(exception.getMessage().contains("blocked address"));
+    } finally {
+      downloader.close();
+      await(server.close());
+      await(vertx.close());
+    }
+  }
+
   private FileDownloader createDownloader() {
     FileDownloader downloader = new FileDownloader();
     downloader.serverConfig = new TestServerConfig();
     return downloader;
+  }
+
+  private FileDownloader createInitializedDownloader(Vertx vertx) {
+    FileDownloader downloader = createDownloader();
+    downloader.vertx = vertx;
+    downloader.init();
+    return downloader;
+  }
+
+  private static <T> T await(Future<T> future) throws Exception {
+    return future.toCompletionStage().toCompletableFuture().get(10, TimeUnit.SECONDS);
   }
 
   private static class TestServerConfig implements ServerConfig {
