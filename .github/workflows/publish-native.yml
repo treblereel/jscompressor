@@ -1,10 +1,8 @@
 name: Publish native image
 
 on:
-  push:
-    tags:
-      - 'v*'
-      - 'r*'
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       image_tag:
@@ -41,6 +39,18 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+
+      - name: Verify release tag matches Closure Compiler version
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          compiler_version="$(mvn --batch-mode --no-transfer-progress help:evaluate \
+            -Dexpression=closure-compiler.version -DforceStdout -q)"
+          if [ "$RELEASE_TAG" != "$compiler_version" ]; then
+            echo "Release tag '$RELEASE_TAG' does not match Closure Compiler version '$compiler_version'." >&2
+            exit 1
+          fi
 
       - name: Build and test native executable
         run: >-
@@ -90,10 +100,10 @@ jobs:
           images: docker.io/treblereel/jscompressor
           flavor: latest=false
           tags: |
-            type=ref,event=tag
+            type=raw,value=${{ github.event.release.tag_name }},enable=${{ github.event_name == 'release' }}
             type=raw,value=${{ inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
             type=sha,prefix=sha-
-            type=raw,value=latest,enable=${{ github.event_name == 'push' || inputs.publish_latest }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' || inputs.publish_latest }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0

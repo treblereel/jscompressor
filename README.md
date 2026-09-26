@@ -67,7 +67,8 @@ The `Publish native image` GitHub Actions workflow publishes `linux/amd64` image
 - `DOCKERHUB_USERNAME` - Docker Hub username.
 - `DOCKERHUB_TOKEN` - Docker Hub access token with permission to push the repository.
 
-Pushing a tag matching `v*` or `r*` publishes the Git tag, `sha-<commit>`, and `latest` image tags.
+Publishing a GitHub Release publishes its Git tag, `sha-<commit>`, and `latest` image tags. The release tag
+must exactly match the `closure-compiler.version` property in `pom.xml`, for example `v20260831`.
 The workflow can also be started manually with a custom image tag and an optional `latest` update.
 It builds the native executable in the Quarkus Linux builder container, runs the native integration test,
 smoke-tests the final container, and rejects fixable high or critical vulnerabilities before logging in and
