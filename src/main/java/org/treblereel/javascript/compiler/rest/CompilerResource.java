@@ -102,7 +102,7 @@ public class CompilerResource {
   @Operation(
           summary = "Compile JavaScript code",
           description = "Compiles JavaScript code using Google Closure Compiler",
-          operationId = "compile"
+          operationId = "compileJavaScript"
   )
   @RequestBody(
           content  = @Content(
@@ -312,7 +312,7 @@ public class CompilerResource {
   @Operation(
           summary = "Fetch compiled code",
           description = "Reads compiled code from cache using the provided hash",
-          operationId = "read"
+          operationId = "readCompiledCode"
   )
   @Parameter(
           name        = "hash",

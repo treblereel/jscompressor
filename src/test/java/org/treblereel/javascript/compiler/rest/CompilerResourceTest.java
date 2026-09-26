@@ -488,8 +488,8 @@ public class CompilerResourceTest {
     assertTrue(openApiYaml.contains("url: https://jscompressor.treblereel.dev/"));
     assertTrue(openApiYaml.contains("description: Production server"));
     assertTrue(openApiYaml.contains("/compile:"));
-    assertTrue(openApiYaml.contains("operationId: compile"));
-    assertTrue(openApiYaml.contains("operationId: read"));
+    assertTrue(openApiYaml.contains("operationId: compileJavaScript"));
+    assertTrue(openApiYaml.contains("operationId: readCompiledCode"));
     assertTrue(openApiYaml.contains("name: filename"));
     assertTrue(openApiYaml.contains("ErrorResponse"));
     assertTrue(openApiYaml.contains("\"400\""));
@@ -497,6 +497,20 @@ public class CompilerResourceTest {
     assertTrue(openApiYaml.contains("\"413\""));
     assertTrue(openApiYaml.contains("\"429\""));
     assertTrue(openApiYaml.contains("\"500\""));
+  }
+
+  @Test
+  public void testLegacyOpenApiPathRemainsAvailable() {
+    String openApi = given()
+        .when()
+        .get("/openapi")
+        .then()
+        .statusCode(200)
+        .extract()
+        .asString();
+
+    assertTrue(openApi.contains("operationId: compileJavaScript"));
+    assertTrue(openApi.contains("operationId: readCompiledCode"));
   }
 
   @Test
