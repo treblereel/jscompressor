@@ -529,6 +529,8 @@ public class CompilerResourceTest {
     assertTrue(index.contains("role=\"dialog\""));
     assertTrue(index.contains("aria-live=\"polite\""));
     assertTrue(index.contains("aria-label=\"Close terms of service\""));
+    assertTrue(index.contains("href=\"https://github.com/sponsors/treblereel\""));
+    assertTrue(index.contains("aria-label=\"Support me on GitHub Sponsors\""));
   }
 
   @Test
