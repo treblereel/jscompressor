@@ -34,27 +34,27 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
+        <maven.compiler.plugin.version>3.16.0</maven.compiler.plugin.version>
 
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
 
-        <maven.license.plugin>4.6</maven.license.plugin>
+        <maven.license.plugin>5.1.2</maven.license.plugin>
         <maven.fmt.plugin>2.25</maven.fmt.plugin>
         <maven.checkstyle.plugin>3.6.0</maven.checkstyle.plugin>
-        <version.checkstyle>11.0.0</version.checkstyle>
+        <version.checkstyle>14.1.0</version.checkstyle>
 
         <checkstyle.failOnViolation>true</checkstyle.failOnViolation>
         <checkstyle.logViolationsToConsole>true</checkstyle.logViolationsToConsole>
 
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-        <quarkus.platform.version>3.25.4</quarkus.platform.version>
+        <quarkus.platform.version>3.39.4</quarkus.platform.version>
 
         <closure-compiler.version>v20260915</closure-compiler.version>
-        <commons-io.version>2.18.0</commons-io.version>
+        <commons-io.version>2.22.0</commons-io.version>
 
-        <surefire-plugin.version>3.5.0</surefire-plugin.version>
+        <surefire-plugin.version>3.6.0</surefire-plugin.version>
         <skipITs>true</skipITs>
     </properties>
 
