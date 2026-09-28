@@ -33,6 +33,8 @@ public interface ServerConfig {
 
   int downloadReadTimeoutMs();
 
+  int downloadTimeoutMs();
+
   int downloadMaxRedirects();
 
   String cacheLocation();

@@ -27,8 +27,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -36,10 +37,13 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import com.google.javascript.jscomp.SourceFile;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
@@ -80,7 +84,12 @@ public class FileDownloader {
 
     @PostConstruct
     void init() {
-        httpClient = vertx.createHttpClient(new HttpClientOptions().setVerifyHost(true));
+        httpClient = vertx.createHttpClient(clientOptions());
+    }
+
+    HttpClientOptions clientOptions() {
+        return new HttpClientOptions()
+                .setVerifyHost(true).setTryUseCompression(false).setKeepAlive(false);
     }
 
     @PreDestroy
@@ -95,7 +104,7 @@ public class FileDownloader {
             return getBuildinFile(fileUrl);
         }
 
-        String source = downloadFileToTemp(fileUrl);
+        String source = downloadSource(fileUrl);
         String fileName = getFileNameFromUrl(fileUrl);
         return SourceFile.fromCode(fileName, source);
     }
@@ -116,52 +125,28 @@ public class FileDownloader {
             throw new IOException(
                     "Failed to load resource: "
                             + fileUrl
-                            + (e.getMessage() != null ? " - " + e.getMessage() : ""));
+                            + (e.getMessage() != null ? " - " + e.getMessage() : ""), e);
         }
     }
 
-    public String downloadFileToTemp(String fileUrl) throws IOException {
+    public String downloadSource(String fileUrl) throws IOException {
+        return awaitDownload(startDownload(fileUrl)).body();
+    }
+
+    Download startDownload(String fileUrl) throws IOException {
         URI uri = validateExternalUri(fileUrl);
-
-        for (int redirectCount = 0; redirectCount <= serverConfig.downloadMaxRedirects(); redirectCount++) {
-            DownloadResponse response = executeRequest(uri, resolveAllowedAddresses(uri));
-
-            if (isRedirect(response.statusCode())) {
-                String location = response.location();
-                if (location == null || location.isBlank()) {
-                    throw new IOException("Redirect response is missing Location header");
-                }
-                uri = validateExternalUri(uri.resolve(location).toString());
-                continue;
-            }
-
-            if (response.statusCode() == 200) {
-                return response.body();
-            }
-
-            String msg = String.format(
-                    "Failed to download file: %s, %s - %s",
-                    fileUrl,
-                    response.statusCode(),
-                    response.statusMessage());
-            throw new IOException(msg);
-        }
-
-        throw new IOException("Too many redirects while downloading file: " + fileUrl);
+        Download operation = new Download();
+        operation.context.runOnContext(ignored -> {
+            operation.start();
+            operation.resolve(uri, 0);
+        });
+        return operation;
     }
 
-    private DownloadResponse executeRequest(URI uri, InetAddress[] addresses) throws IOException {
-        ConnectionFailure lastFailure = null;
-        for (InetAddress address : addresses) {
-            try {
-                return executeRequest(uri, address);
-            } catch (ConnectionFailure e) {
-                lastFailure = e;
-            }
-        }
-        throw lastFailure == null
-                ? new IOException("URL host cannot be resolved: " + uri.getHost())
-                : lastFailure;
+    /** Retained for callers of the previous API; downloads have always stayed in memory. */
+    @Deprecated
+    public String downloadFileToTemp(String fileUrl) throws IOException {
+        return downloadSource(fileUrl);
     }
 
     RequestOptions createRequestOptions(URI uri, InetAddress address) {
@@ -187,90 +172,230 @@ public class FileDownloader {
     }
 
     DownloadResponse executeRequest(URI uri, InetAddress address) throws IOException {
-        if (httpClient == null) {
-            throw new IOException("HTTP client is not initialized");
-        }
-
-        HttpClientResponse response;
-        try {
-            response = httpClient.request(createRequestOptions(uri, address))
-                    .compose(request -> request.send())
-                    .toCompletionStage()
-                    .toCompletableFuture()
-                    .get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Interrupted while downloading file: " + uri, e);
-        } catch (ExecutionException e) {
-            throw new ConnectionFailure("Failed to connect to resource: " + uri, e.getCause());
-        }
-
-        verifyConnectedAddress(response, address);
-        int statusCode = response.statusCode();
-        String statusMessage = response.statusMessage();
-        String location = response.getHeader("Location");
-        if (statusCode != 200) {
-            closeConnection(response);
-            return new DownloadResponse(statusCode, statusMessage, location, null);
-        }
-
-        long contentLength = parseContentLength(response);
-        if (contentLength > serverConfig.downloadFileMaxSize()) {
-            closeConnection(response);
-            throw fileTooLarge(contentLength);
-        }
-
-        return new DownloadResponse(statusCode, statusMessage, location, readBody(response));
+        Download operation = new Download();
+        operation.context.runOnContext(ignored -> {
+            operation.start();
+            operation.request(uri, new InetAddress[]{address}, 0, 0);
+        });
+        return awaitDownload(operation);
     }
 
-    private String readBody(HttpClientResponse response) throws IOException {
-        CompletableFuture<String> body = new CompletableFuture<>();
-        long maxSize = serverConfig.downloadFileMaxSize();
-        long[] size = {0};
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-        response.pause();
-        response.exceptionHandler(body::completeExceptionally);
-        response.handler(buffer -> appendBody(response, buffer, output, size, maxSize, body));
-        response.endHandler(ignored -> {
-            if (!body.isDone()) {
-                body.complete(output.toString(StandardCharsets.UTF_8));
-            }
-        });
-        response.resume();
-
+    private DownloadResponse awaitDownload(Download operation) throws IOException {
         try {
-            return body.get();
+            return operation.result.future().toCompletionStage().toCompletableFuture()
+                    .get(Math.max(0, operation.deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
         } catch (InterruptedException e) {
+            IOException failure = new IOException("Interrupted while downloading file", e);
+            operation.cancel(failure);
             Thread.currentThread().interrupt();
-            closeConnection(response);
-            throw new IOException("Interrupted while reading downloaded file", e);
+            throw failure;
+        } catch (TimeoutException e) {
+            IOException failure = new IOException("Download deadline exceeded", e);
+            operation.cancel(failure);
+            throw failure;
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof IOException ioException) {
                 throw ioException;
             }
+            if (cause instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
             throw new IOException("Failed to read downloaded file", cause);
         }
     }
 
-    private void appendBody(
-            HttpClientResponse response,
-            Buffer buffer,
-            ByteArrayOutputStream output,
-            long[] size,
-            long maxSize,
-            CompletableFuture<String> body) {
-        if (body.isDone()) {
-            return;
+    // All mutable state and response handlers belong to this one Vert.x context.
+    // Only the caller waits; the event loop never blocks on a future or DNS.
+    final class Download {
+        private final Context context;
+        private final Promise<DownloadResponse> result = Promise.promise();
+        private final long deadline;
+        private HttpClientRequest activeRequest;
+        private long timer = -1;
+        private volatile IOException cancellation;
+
+        Future<DownloadResponse> future() {
+            return result.future();
         }
-        size[0] += buffer.length();
-        if (size[0] > maxSize) {
-            body.completeExceptionally(fileTooLarge(size[0]));
-            closeConnection(response);
-            return;
+
+        private Download() throws IOException {
+            if (Context.isOnEventLoopThread()) {
+                throw new IllegalStateException("Blocking download must run on a worker thread");
+            }
+            if (httpClient == null) {
+                throw new IOException("HTTP client is not initialized");
+            }
+            if (serverConfig.downloadTimeoutMs() <= 0) {
+                throw new IllegalStateException("Download timeout must be positive");
+            }
+            context = vertx.getOrCreateContext();
+            deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(serverConfig.downloadTimeoutMs());
         }
-        output.writeBytes(buffer.getBytes());
+
+        private void start() {
+            if (stopped()) {
+                return;
+            }
+            long remainingMs = Math.max(1, TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime()));
+            timer = vertx.setTimer(remainingMs, ignored ->
+                    fail(new IOException("Download deadline exceeded")));
+        }
+
+        private void cancel(IOException cause) {
+            cancellation = cause;
+            context.runOnContext(ignored -> fail(cause));
+        }
+
+        private boolean stopped() {
+            if (cancellation != null) {
+                fail(cancellation);
+            }
+            if (!result.future().isComplete() && System.nanoTime() >= deadline) {
+                fail(new IOException("Download deadline exceeded"));
+            }
+            return result.future().isComplete();
+        }
+
+        private void fail(Throwable cause) {
+            if (result.tryFail(cause)) {
+                vertx.cancelTimer(timer);
+                if (activeRequest != null) {
+                    activeRequest.reset();
+                    activeRequest = null;
+                }
+            }
+        }
+
+        private void resolve(URI uri, int redirects) {
+            if (stopped()) {
+                return;
+            }
+            // A slow system resolver cannot be forcibly cancelled, but its late result
+            // is ignored and can never initiate a connection after the deadline.
+            vertx.executeBlocking(() -> resolveAllowedAddresses(uri), false).onComplete(resolved -> {
+                if (stopped()) {
+                    return;
+                }
+                if (resolved.failed()) {
+                    fail(resolved.cause());
+                } else if (resolved.result().length == 0) {
+                    fail(new IOException("URL host cannot be resolved: " + uri.getHost()));
+                } else {
+                    request(uri, resolved.result(), 0, redirects);
+                }
+            });
+        }
+
+        private void request(URI uri, InetAddress[] addresses, int index, int redirects) {
+            if (stopped()) {
+                return;
+            }
+            httpClient.request(createRequestOptions(uri, addresses[index])).onComplete(created -> {
+                if (stopped()) {
+                    if (created.succeeded()) {
+                        created.result().reset();
+                    }
+                    return;
+                }
+                if (created.failed()) {
+                    connectionFailed(uri, addresses, index, redirects, created.cause());
+                    return;
+                }
+                activeRequest = created.result();
+                activeRequest.putHeader("Accept-Encoding", "identity");
+                activeRequest.send().onComplete(sent -> {
+                    if (stopped()) {
+                        if (sent.succeeded()) {
+                            closeConnection(sent.result());
+                        }
+                        return;
+                    }
+                    if (sent.failed()) {
+                        connectionFailed(uri, addresses, index, redirects, sent.cause());
+                        return;
+                    }
+                    // Register every body handler before returning control to Vert.x.
+                    receive(uri, addresses[index], redirects, sent.result());
+                });
+            });
+        }
+
+        private void connectionFailed(URI uri, InetAddress[] addresses, int index, int redirects, Throwable cause) {
+            if (activeRequest != null) {
+                activeRequest.reset();
+                activeRequest = null;
+            }
+            if (index + 1 < addresses.length) {
+                request(uri, addresses, index + 1, redirects);
+            } else {
+                fail(new IOException("Failed to connect to resource: " + uri, cause));
+            }
+        }
+
+        private void receive(URI uri, InetAddress address, int redirects, HttpClientResponse response) {
+            try {
+                // Rejected/redirect bodies are intentionally closed, not consumed.
+                response.exceptionHandler(ignored -> {});
+                verifyConnectedAddress(response, address);
+                int status = response.statusCode();
+                if (status != 200) {
+                    closeConnection(response);
+                    activeRequest = null;
+                    if (!isRedirect(status)) {
+                        throw new IOException("HTTP " + status + " while downloading " + uri);
+                    }
+                    if (redirects >= serverConfig.downloadMaxRedirects()) {
+                        throw new IOException("Too many redirects while downloading file");
+                    }
+                    String location = response.getHeader("Location");
+                    if (location == null || location.isBlank()) {
+                        throw new IOException("Redirect response is missing Location header");
+                    }
+                    URI next;
+                    try {
+                        next = validateExternalUri(uri.resolve(location).toString());
+                    } catch (IllegalArgumentException e) {
+                        throw new IOException("Invalid redirect Location", e);
+                    }
+                    resolve(next, redirects + 1);
+                    return;
+                }
+                String encoding = response.getHeader("Content-Encoding");
+                if (encoding != null && !"identity".equalsIgnoreCase(encoding.trim())) {
+                    throw new IOException("Unsupported Content-Encoding: " + encoding);
+                }
+                long length = parseContentLength(response);
+                if (length > serverConfig.downloadFileMaxSize()) {
+                    throw fileTooLarge(length);
+                }
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                long[] size = {0};
+                response.exceptionHandler(cause -> fail(new IOException("Failed to read downloaded file", cause)));
+                response.handler(buffer -> {
+                    if (stopped()) {
+                        return;
+                    }
+                    size[0] += buffer.length();
+                    if (size[0] > serverConfig.downloadFileMaxSize()) {
+                        fail(fileTooLarge(size[0]));
+                    } else {
+                        output.writeBytes(buffer.getBytes());
+                    }
+                });
+                response.endHandler(ignored -> {
+                    if (!stopped()) {
+                        activeRequest = null;
+                        vertx.cancelTimer(timer);
+                        result.tryComplete(new DownloadResponse(status, response.statusMessage(), null,
+                                output.toString(StandardCharsets.UTF_8)));
+                    }
+                });
+            } catch (IOException | RuntimeException e) {
+                closeConnection(response);
+                fail(e);
+            }
+        }
     }
 
     private long parseContentLength(HttpClientResponse response) {
@@ -324,6 +449,9 @@ public class FileDownloader {
         }
         if (uri.getUserInfo() != null) {
             throw new IOException("URL user info is not allowed");
+        }
+        if (uri.getPort() != -1 && (uri.getPort() < 1 || uri.getPort() > 65535)) {
+            throw new IOException("URL port must be between 1 and 65535");
         }
 
         return uri;
@@ -392,8 +520,9 @@ public class FileDownloader {
     }
 
     private String getFileNameFromUrl(String fileUrl) {
-        String[] parts = fileUrl.split("/");
-        return parts[parts.length - 1];
+        String path = URI.create(fileUrl).getPath();
+        String name = path == null ? "" : path.substring(path.lastIndexOf('/') + 1);
+        return name.isBlank() ? "external.js" : name;
     }
 
     record DownloadResponse(
@@ -403,10 +532,4 @@ public class FileDownloader {
             String body) {
     }
 
-    private static class ConnectionFailure extends IOException {
-
-        private ConnectionFailure(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
 }

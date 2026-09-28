@@ -227,6 +227,11 @@ public class FileCacheTest {
     }
 
     @Override
+    public int downloadTimeoutMs() {
+      return 30000;
+    }
+
+    @Override
     public int downloadReadTimeoutMs() {
       return 10000;
     }
