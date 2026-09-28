@@ -48,8 +48,11 @@ jobs:
           compiler_version="$(mvn --batch-mode --no-transfer-progress help:evaluate \
             -Dexpression=closure-compiler.version -DforceStdout -q)"
           if [ "$RELEASE_TAG" != "$compiler_version" ]; then
-            echo "Release tag '$RELEASE_TAG' does not match Closure Compiler version '$compiler_version'." >&2
-            exit 1
+            revision="${RELEASE_TAG#"$compiler_version"-}"
+            if [ "$revision" = "$RELEASE_TAG" ] || ! [[ "$revision" =~ ^[1-9][0-9]*$ ]]; then
+              echo "Release tag must be '$compiler_version' or '$compiler_version-<positive revision>'." >&2
+              exit 1
+            fi
           fi
 
       - name: Build and test native executable
