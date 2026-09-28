@@ -89,6 +89,7 @@ The application can be configured using the following environment variables:
 - `MAX_DOWNLOAD_FILE_SIZE` - Sets the maximum file/script size that can be uploaded to the server. Default is 1048576 bytes (1MB).
 - `MAX_REQUEST_BODY_SIZE` (`server.request-body-max-size`) - Maximum complete JSON request size in bytes. Default is `0`: automatically uses six times `server.download-file-max-size` plus 65536 bytes for JSON escaping and request metadata. A positive value sets an explicit body limit. Requests above this limit return JSON HTTP 413, including chunked requests. The decoded payload still uses `server.download-file-max-size`; an oversized payload within the body limit returns HTTP 400.
 - `MAX_DOWNLOAD_URLS_PER_REQUEST` - Sets the maximum number of URLs that can be uploaded to the server. Default is 10.
+- `DOWNLOAD_TIMEOUT_MS` - Total deadline per external URL in milliseconds, including DNS, connection attempts, redirects and body transfer. Default is 30000; must be positive. Connect and idle timeouts remain independently configurable with `DOWNLOAD_CONNECT_TIMEOUT_MS` (5000) and `DOWNLOAD_READ_TIMEOUT_MS` (10000).
 - `MAX_CACHE_DIR_SIZE` - Sets the maximum size of the cache directory. Default is 1073741824 bytes (1GB). Once limit is reached, the oldest files will be deleted.
 - `RATE_LIMIT_ENABLED` - Enables per-client REST rate limiting for `/compile` endpoints. Default is `true`.
 - `RATE_LIMIT_REQUESTS_PER_MINUTE` - Sets the maximum number of `/compile` requests per client per minute. Default is 120.
@@ -104,6 +105,10 @@ The HTTP server (`quarkus.http.limits.max-body-size`) and any reverse proxy may 
 External scripts must use public HTTP or HTTPS URLs. Loopback, private, link-local, multicast, and reserved
 addresses are rejected. Every redirect is validated again, and connections are pinned to the validated DNS
 address to prevent DNS rebinding.
+Bodies are read with a streaming byte limit, including chunked responses. Downloads request
+`Accept-Encoding: identity`; other response content encodings are rejected. A timed-out DNS lookup may
+finish in the background, but its result cannot start a connection. The complete compile request also
+has its existing 120-second timeout.
 
 When running behind a reverse proxy, set `PROXY_ADDRESS_FORWARDING=true` and configure `TRUSTED_PROXIES`
 with the proxy's address or network. The proxy must replace client-provided `X-Forwarded-*` headers rather
