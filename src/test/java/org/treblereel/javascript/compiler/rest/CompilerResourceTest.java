@@ -118,6 +118,23 @@ public class CompilerResourceTest {
   }
 
   @Test
+  public void testCompileCorsPreflight() {
+    String origin = "https://test.reporthost.com";
+
+    given()
+        .header("Origin", origin)
+        .header("Access-Control-Request-Method", "POST")
+        .header("Access-Control-Request-Headers", "Content-Type")
+        .when()
+        .options("/compile")
+        .then()
+        .statusCode(200)
+        .header("Access-Control-Allow-Origin", is(origin))
+        .header("Access-Control-Allow-Methods", containsString("POST"))
+        .header("Access-Control-Allow-Headers", containsString("Content-Type"));
+  }
+
+  @Test
   public void testCompileSuccessAdvanced() {
     CompileRequest compileRequest = new CompileRequest();
     compileRequest.setPayload("function hello(name) {\n    alert('Hello, ' + name);\n}\nhello('New user');");
