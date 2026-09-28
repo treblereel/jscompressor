@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "@tailwindcss/cli": "4.3.3",
-    "alpinejs": "3.17.3",
+    "alpinejs": "3.17.4",
     "tailwindcss": "4.3.3"
   }
 }
