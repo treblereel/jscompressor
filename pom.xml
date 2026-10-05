@@ -42,14 +42,14 @@
         <maven.license.plugin>5.1.2</maven.license.plugin>
         <maven.fmt.plugin>2.25</maven.fmt.plugin>
         <maven.checkstyle.plugin>3.6.0</maven.checkstyle.plugin>
-        <version.checkstyle>14.1.0</version.checkstyle>
+        <version.checkstyle>14.3.0</version.checkstyle>
 
         <checkstyle.failOnViolation>true</checkstyle.failOnViolation>
         <checkstyle.logViolationsToConsole>true</checkstyle.logViolationsToConsole>
 
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-        <quarkus.platform.version>3.39.4</quarkus.platform.version>
+        <quarkus.platform.version>3.40.1</quarkus.platform.version>
 
         <closure-compiler.version>v20260915</closure-compiler.version>
         <commons-io.version>2.22.0</commons-io.version>
